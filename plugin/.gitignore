@@ -1,0 +1,4 @@
+#directories
+plugin/obj
+config.mk
+Makefile

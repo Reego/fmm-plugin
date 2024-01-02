@@ -1,0 +1,11 @@
+prefix=/Users/rodrigobrandao/blis-plugins-copy
+exec_prefix=/Users/rodrigobrandao/blis-plugins-copy
+libdir=/Users/rodrigobrandao/blis-plugins-copy/lib
+includedir=/Users/rodrigobrandao/blis-plugins-copy/include
+
+Name: BLIS
+Description: BLAS-like Library Instantiation Software Framework
+Version: 0.9.0
+Libs: -L${libdir} -lblis
+Libs.private:  -lm -lpthread
+Cflags: -I${includedir}/blis
