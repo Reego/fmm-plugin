@@ -162,6 +162,8 @@ void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )
     // printf("\nPARAMS A %d %d\n\n", m, k);
     // printf("\nPARAMS B %d %d\n\n", k, n);
 
+    paramsC.local = &C_local;
+
 #if 1
     func_t *pack_ukr;
 

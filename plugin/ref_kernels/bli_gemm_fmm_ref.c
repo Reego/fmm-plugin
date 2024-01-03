@@ -74,6 +74,11 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	dim_t m_max = params->m_max, n_max = params->n_max; \
 	dim_t off_m0 = bli_auxinfo_off_m( data );\
 	dim_t off_n0 = bli_auxinfo_off_n( data );\
+	obj_t* C_local = params->local;\
+	inc_t totaloff = ((char*)c - ((char*)(C_local->buffer)))/sizeof(ctype);\
+	dim_t m0 = totaloff/rs_c;\
+	dim_t n0 = totaloff%rs_c;\
+	if (false) printf("\ntotaloff %d \t %d %d \t %d %d\n", totaloff, rs_c, cs_c, totaloff / 24, totaloff % 24);\
 \
 	/* Compute the AB product and store in a temporary buffer. */ \
 	/* TODO: optimize passes where only one sub-matrix is written. */ \
@@ -118,8 +123,8 @@ void PASTEMAC3(ch,opname,arch,suf) \
 		/*if (s==3) printf("\t\t TIME TO ADD AB to C w/ coef %f \t off %d %d prev value is %5.3f -> %5.3f\n", lambda, off_m[s]*rs_c, off_n[s]*cs_c, c_use[0]);*/\
 \
 		\
-		dim_t m_use = bli_min( m, m_max - ( off_m0 + off_m[ s ] ) ); \
-		dim_t n_use = bli_min( n, n_max - ( off_n0 + off_n[ s ] ) ); \
+		dim_t m_use = bli_min( m, m_max - ( m0 + off_m[ s ] ) ); \
+		dim_t n_use = bli_min( n, n_max - ( n0 + off_n[ s ] ) ); \
 		if (false) printf("\t\t%d - m_use %d n_use %d \t off0   %d %d \t max %d %d\n", s, m_use, n_use, off_m0, off_n0, m_max, n_max);\
 \
 		if (DEBUG_gemm) printf("\n\n\t\tINFO lambda %5.3f \t offset %d %d\t use %d %d \t \t %d %d\t %d %d\n\n", lambda, off_m[ s ], off_n[ s ], m_use, n_use, m, n, m_max, n_max);\

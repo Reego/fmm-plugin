@@ -132,7 +132,7 @@ void test_bli_strassen_ex( int m, int n, int k, int debug )
         bli_printm( "matrix 'c', initialized by columns:", &C, "%5.3f", "" );
     }
     else {
-        bli_printm( "matrix 'b', initialized by columns:", &B, "%5.3f", "" );
+        // bli_printm( "matrix 'b', initialized by columns:", &B, "%5.3f", "" );
     }
 
 #endif 
@@ -293,20 +293,20 @@ void test_bli_strassen_ex( int m, int n, int k, int debug )
                 m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid, resid_other );
     else {
         if (resid > .0000001) {
-            bli_printm( "matrix 'a', initialized by columns:", &A, "%5.3f", "" );
-            bli_printm( "matrix 'b', initialized by columns:", &B, "%5.3f", "" );
-            bli_printm( "matrix 'c', initialized by columns:", &C, "%5.3f", "" );
+            // bli_printm( "matrix 'a', initialized by columns:", &A, "%5.3f", "" );
+            // bli_printm( "matrix 'b', initialized by columns:", &B, "%5.3f", "" );
+            // bli_printm( "matrix 'c', initialized by columns:", &C, "%5.3f", "" );
             printf("\n\n");
             printf( "--> %5d\t %5d\t %5d\t %5.2lf\t %5.2lf\t %5.2g\t %5.2g\n",
                     m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid, resid_other );
             printf("\n\n");
-            bli_printm( "RESULT 'C', initialized by columns:", &C, "%5.3f", "" );
-            bli_printm( "REFERENCE 'C_REF', initialized by columns:", &C_ref, "%5.3f", "" );
-            bli_abort();
+            // bli_printm( "RESULT 'C', initialized by columns:", &C, "%5.3f", "" );
+            // bli_printm( "REFERENCE 'C_REF', initialized by columns:", &C_ref, "%5.3f", "" );
+            // bli_abort();
         }
         else {
             // printf( "%5d\t %5d\t %5d\t %5.2lf\t %5.2lf\t %5.2g\t %5.2g\n",
-            //     m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid, resid_other );
+                // m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid, resid_other );
         }
     }
     //printf( "%5d\t %5d\t %5d\t %5.2lf\n",
@@ -357,9 +357,13 @@ int main( int argc, char *argv[] )
 
     int m, n, k;
 
-    m = 1; n = 2; k = 29;
+    m = 20; n = 20; k = 10;
 
     test_bli_strassen_ex( m, n, k, 1);
+
+    // m = 1000; n = 1000; k = 1017;
+
+    // test_bli_strassen_ex( m, n, k, 1);
 
     // m = M_CONST; 
     // n = N_CONST;

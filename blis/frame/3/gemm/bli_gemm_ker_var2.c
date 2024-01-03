@@ -311,15 +311,17 @@ void bli_gemm_ker_var2
 				b2 = bli_gemm_get_next_b_upanel( b1, cstep_b, jr_inc );
 			}
 
-			// printf("\n\nGEMM KER VAR 2 \t offset %d %d\n\n", i*MR, j*NR);
+			// printf("\n\nGEMM KER VAR 2 \t offset %d %d \t of %d and %d\n\n", i*MR, j*NR, m, n);
 
 			// Save addresses of next panels of A and B to the auxinfo_t
 			// object.
 			bli_auxinfo_set_next_a( a2, &aux );
 			bli_auxinfo_set_next_b( b2, &aux );
 
-			bli_auxinfo_set_off_m( i*MR, &aux );
-			bli_auxinfo_set_off_n( j*NR, &aux );
+			// TODO
+
+			// bli_auxinfo_set_off_m( i*MR + off_mc, &aux );
+			// bli_auxinfo_set_off_n( j*NR + off_nc, &aux );
 
 			// Edge case handling now occurs within the microkernel itself, but
 			// we must still explicitly accumulate to a temporary microtile in
