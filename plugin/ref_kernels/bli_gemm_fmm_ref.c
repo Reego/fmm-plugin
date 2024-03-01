@@ -36,8 +36,6 @@
 #include "blis.h"
 #include STRINGIFY_INT(../PASTEMAC(plugin,BLIS_PNAME_INFIX).h)
 
-#define DEBUG_gemm 0
-
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, arch, suf ) \
 \
@@ -71,6 +69,8 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	float* restrict coef = ( float* )params->coef; \
 	inc_t* restrict off_m = params->off_m; \
 	inc_t* restrict off_n = params->off_n; \
+	inc_t* restrict part_m = params->part_m; \
+	inc_t* restrict part_n = params->part_n; \
 	dim_t m_max = params->m_max, n_max = params->n_max; \
 	dim_t off_m0 = bli_auxinfo_off_m( data );\
 	dim_t off_n0 = bli_auxinfo_off_n( data );\
@@ -78,12 +78,10 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	inc_t totaloff = ((char*)c - ((char*)(C_local->buffer)))/sizeof(ctype);\
 	dim_t m0 = totaloff/rs_c;\
 	dim_t n0 = totaloff%rs_c;\
-	if (false) printf("\ntotaloff %d \t %d %d \t %d %d\n", totaloff, rs_c, cs_c, totaloff / 24, totaloff % 24);\
 \
 	/* Compute the AB product and store in a temporary buffer. */ \
 	/* TODO: optimize passes where only one sub-matrix is written. */ \
 	/* TODO: also optimize prefetching for multiple sub-matrices. */ \
-	if (DEBUG_gemm) printf("== PRE MULT mr %d   nr %d \t rs %d   cs %d:\n", MR, NR, rs_ab, cs_ab);\
 	ukr \
 	( \
 		MR, \
@@ -99,40 +97,26 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	); \
 \
 	ctype* abp = (ctype*) ab;\
-	if (DEBUG_gemm) printf("\nnsplit %d \t %f %f %f %f\n\n", nsplit, coef[0], coef[1], coef[2], coef[3]);\
-	if (DEBUG_gemm) {\
-		printf("MATRIX AB %d %d %d \t %d %d:\n", m, n, k, m_max, n_max);\
-		for (dim_t g = 0; g < n; g++) {\
-			printf("\n");\
-			for (dim_t i = 0; i < m; i++) {\
-				printf("%5.3f ", abp[i*rs_ab + g*cs_ab]);\
-			}\
-		}\
-		printf("\n\n\n\n-------------------------------------\n");\
-	}\
 \
 	for ( dim_t s = 0; s < nsplit; s++ ) \
 	{ \
 		\
 		ctype alpha_cast, lambda; \
-		if (true) {\
 		alpha_cast = *( ctype* )alpha; \
 		PASTEMAC3(ch, s, ch, scal2s)( alpha_cast, coef[ s ], lambda ); \
 \
 		ctype* restrict c_use = ( ctype* )c + off_m[ s ] * rs_c + off_n[ s ] * cs_c; \
-		/*if (s==3) printf("\t\t TIME TO ADD AB to C w/ coef %f \t off %d %d prev value is %5.3f -> %5.3f\n", lambda, off_m[s]*rs_c, off_n[s]*cs_c, c_use[0]);*/\
-\
 		\
-		dim_t m_use = bli_min( m, m_max - ( m0 + off_m[ s ] ) ); \
-		dim_t n_use = bli_min( n, n_max - ( n0 + off_n[ s ] ) ); \
-		if (false) printf("\t\t%d - m_use %d n_use %d \t off0   %d %d \t max %d %d\n", s, m_use, n_use, off_m0, off_n0, m_max, n_max);\
-\
-		if (DEBUG_gemm) printf("\n\n\t\tINFO lambda %5.3f \t offset %d %d\t use %d %d \t \t %d %d\t %d %d\n\n", lambda, off_m[ s ], off_n[ s ], m_use, n_use, m, n, m_max, n_max);\
-\
+		inc_t total_off_m = m0 + off_m[s];\
+		inc_t total_off_n = n0 + off_n[s];\
+		\
+		/*dim_t m_use = bli_min(part_m[s], bli_min( m, m_max - total_off_m ));*/ \
+		/*dim_t n_use = bli_min(part_n[s], bli_min( n, n_max - total_off_n ));*/ \
+		dim_t m_use  = bli_max(0, bli_min(m, part_m[s] - m0 )); \
+		dim_t n_use = bli_max(0, bli_min(n, part_n[s] - n0 )); \
 		PASTEMAC(ch,axpbys_mxn)( m_use, n_use, \
 		                         &lambda, ab, rs_ab, cs_ab, \
 		                         ( void* )beta, c_use, rs_c, cs_c ); \
-		}\
 	} \
 }
 

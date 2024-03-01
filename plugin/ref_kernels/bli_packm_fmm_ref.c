@@ -47,8 +47,6 @@
 #include <complex.h>
 #include STRINGIFY_INT(../PASTEMAC(plugin,BLIS_PNAME_INFIX).h)
 
-#define DEBUG_pack 0
-
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, arch, suf ) \
 \
@@ -84,8 +82,9 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	float* coeff = (float*) params->coef;\
 	inc_t* restrict off_m = params->off_m; \
 	inc_t* restrict off_k = params->off_n; \
+	dim_t* restrict part_m = params->part_m;\
+	dim_t* restrict part_n = params->part_n; \
 	dim_t m_max = params->m_max, k_max = params->n_max; \
-	/* printf("\n\n\t%p \t coef[0] %5.3f coef[1] %5.3f \n\n", params_, coef[0], coef[1]);*/ \
 \
 	/* The first sub-matrix also needs a coefficient and offset computation. */ \
 	ctype kappa_cast, lambda; \
@@ -101,12 +100,8 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	dim_t panel_len_use = bli_min( panel_len, k_max - ( panel_len_off + off_k[ 0 ] ) ); \
 \
 	\
-	if (DEBUG_pack) printf("\nnsplit %d \t %5.3f \t %f %f %f %f\n\n", nsplit, (( ctype* )c)[0], coeff[0], coeff[1], coeff[2], coeff[3]);\
-	if (DEBUG_pack) printf("ldp %d  panel_dim %d-%d  panel_len %d-%d\n", ldp, panel_dim, panel_dim_max, panel_len, panel_len_max);\
-	if (DEBUG_pack) printf("\n\nincc %d ldc %d\n\n", incc, ldc);\
 	/* Call the usual packing kernel to pack the first sub-matrix and take
 	   care zeroing out the edges. */ \
-	if (false) return;\
 \
 	packm_def \
 	( \
@@ -124,21 +119,20 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	  cntx \
 	); \
 \
-	if (DEBUG_pack) printf("\n\n");\
 	for ( dim_t s = 1; s < nsplit; s++ ) \
 	{ \
-		/* PASTEMAC(ch,scal2s)( kappa_cast, coef[ s ], lambda ); */ \
 		PASTEMAC3(ch, s, ch, scal2s)( kappa_cast, coef[ s ], lambda );\
 \
-		c_use = ( ctype* )c + off_m[ s ] * incc + off_k[ s ] * ldc; \
+		inc_t total_off_m = panel_dim_off + off_m[s];\
+		inc_t total_off_n = panel_len_off + off_k[s];\
+\
+		c_use = ( ctype* )c + off_m[s] * incc + off_k[s] * ldc; \
 		p_use = ( ctype* )p; \
 \
 		/* Check if we need to shrink the micro-panel due to unequal partitioning. */ \
-		panel_dim_use = bli_min( panel_dim, m_max - ( panel_dim_off + off_m[ s ] ) ); \
-		panel_len_use = bli_min( panel_len, k_max - ( panel_len_off + off_k[ s ] ) ); \
-		if (DEBUG_pack) printf("%5.3f coef %5.3f , offset %dx%d , size %dx%d \t %dx%d inc\n", c_use[0], coeff[s], off_m[s], off_k[s], panel_dim_use, panel_len_use, incc, ldc);\
-\
-		/*printf("\t s=%d \t and off is %d %d and value is %5.3f w/ coef %5.3f\n", s, off_m[s], off_k[s], c_use[0], coeff[s]);*/\
+		panel_dim_use = bli_min(panel_dim, part_m[s] - panel_dim_off ); \
+		panel_len_use = bli_min(panel_len, part_n[s] - panel_len_off ); \
+		\
 		/* For subsequence sub-matrices, we don't need to re-zero any edges, just accumulate. */ \
 		for ( dim_t j = 0; j < panel_len_use; j++ ) \
 		{ \
@@ -151,20 +145,6 @@ void PASTEMAC3(ch,opname,arch,suf) \
 			p_use += ldp; \
 		} \
 	} \
-	if (DEBUG_pack) { \
-		ctype* pp = (ctype*) p;\
-		panel_dim_use = bli_min( panel_dim, m_max - ( panel_dim_off + off_m[ 0 ] ) ); \
-		panel_len_use = bli_min( panel_len, k_max - ( panel_len_off + off_k[ 0 ] ) ); \
-		printf("MATRIX AP: %5.3f \t %d by %d \t %d %d %d\n\n", lambda2, panel_dim_use, panel_len_use, panel_dim, off_m[1], m_max);\
-		for (dim_t g = 0; g < panel_dim_use; g++) {\
-			printf("\n");\
-			for (dim_t i = 0; i < panel_len_use; i++) {\
-				printf("%5.3f ", pp[i*ldp + g]);\
-			}\
-		}\
-		printf("\n");\
-	}\
-	if (false) printf("\n");\
 }
 
 INSERT_GENTFUNC_BASIC( packm_fmm, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX )
