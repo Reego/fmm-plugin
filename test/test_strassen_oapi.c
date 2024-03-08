@@ -43,7 +43,7 @@ void my_mm(obj_t* A, obj_t* B, obj_t* C, dim_t m, dim_t n, dim_t k) {
 
 int test_bli_strassen_ex( int m, int n, int k, int debug )
 {   
-    fmm_t fmm = new_fmm("222.txt");
+    fmm_t fmm = new_fmm("444.txt");
 
     obj_t* null = 0;
 

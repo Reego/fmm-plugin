@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define LINE_N 128
+#define LINE_N 256
 
 #define _U( i,j ) fmm.U[ (i)*fmm.R + (j) ]
 #define _V( i,j ) fmm.V[ (i)*fmm.R + (j) ]
@@ -30,7 +30,7 @@ fmm_t new_fmm(const char* file_name) {
 
     fgets(line, LINE_N, fp);
 
-    sscanf(line, "%d %d %d %d", &fmm.m_tilde, &fmm.n_tilde, &fmm.k_tilde, &fmm.R);
+    sscanf(line, "%d %d %d %d", &fmm.m_tilde, &fmm.k_tilde, &fmm.n_tilde, &fmm.R);
 
     int aparts = fmm.m_tilde * fmm.k_tilde;
     int bparts = fmm.k_tilde * fmm.n_tilde;

@@ -250,7 +250,7 @@ void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C
 
     init_part_offsets(col_off_C, row_off_C, part_n_C, part_m_C, m_whole, n_whole, M_TILDE, N_TILDE);
 
-    for ( dim_t r = 0; r < FMM_BLIS_MULTS; r++ )
+    for ( dim_t r = 0; r < fmm.R; r++ )
     {
 
         paramsA.nsplit = 0;
