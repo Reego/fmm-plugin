@@ -3,7 +3,25 @@
 #include <time.h>
 #include <complex.h>
 
-#define DEBUG_strassen 0
+#define _U( i,j ) fmm.U[ (i)*fmm.R + (j) ]
+#define _V( i,j ) fmm.V[ (i)*fmm.R + (j) ]
+#define _W( i,j ) fmm.W[ (i)*fmm.R + (j) ]
+
+
+/* Define Strassen's algorithm */
+int STRASSEN_FMM_U[4][7] = {{1, 0, 1, 0, 1, -1, 0}, {0, 0, 0, 0, 1, 0, 1}, {0, 1, 0, 0, 0, 1, 0}, {1, 1, 0, 1, 0, 0, -1}};
+int STRASSEN_FMM_V[4][7] = {{1, 1, 0, -1, 0, 1, 0}, {0, 0, 1, 0, 0, 1, 0}, {0, 0, 0, 1, 0, 0, 1}, {1, 0, -1, 0, 1, 0, 1}};
+int STRASSEN_FMM_W[4][7] = {{1, 0, 0, 1, -1, 0, 1}, {0, 0, 1, 0, 1, 0, 0}, {0, 1, 0, 1, 0, 0, 0}, {1, -1, 1, 0, 0, 1, 0}};
+
+fmm_t STRASSEN_FMM = {
+    .m_tilde = 2,
+    .n_tilde = 2,
+    .k_tilde = 2,
+    .R = 7,
+    .U = &STRASSEN_FMM_U,
+    .V = &STRASSEN_FMM_V,
+    .W = &STRASSEN_FMM_W,
+};
 
 void bl_acquire_spart 
      (
@@ -38,10 +56,16 @@ void bl_acquire_spart
         bli_abort();
     }
 
-    row_part = (m+1) / row_splits;
-    col_part = (n+1) / col_splits;
+    row_part = m / row_splits;
+    col_part = n / col_splits;
 
-    // printf("\n\nrow_part %d col_part %d\n\n\n", row_part, col_part);
+    if (m % row_splits != 0) {
+        ++row_part;
+    }
+
+    if (n % col_splits != 0) {
+        ++col_part;
+    }
 
     bli_obj_init_subpart_from( obj, sub_obj );
 
@@ -59,8 +83,45 @@ void bl_acquire_spart
 
 }
 
-void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )
-{
+void init_part_offsets(dim_t* row_off, dim_t* col_off, dim_t* part_m, dim_t* part_n, dim_t row_whole, dim_t col_whole, int row_tilde, int col_tilde) {
+
+    int num_row_part_whole = row_whole % row_tilde;
+    if (row_whole % row_tilde == 0) num_row_part_whole = 0;
+    dim_t row_part_size = row_whole / row_tilde;
+
+    int num_col_part_whole = col_whole % col_tilde;
+    if (col_whole % col_tilde == 0) num_col_part_whole = 0;
+    dim_t col_part_size = col_whole / col_tilde;
+
+    for (int i = 0; i < row_tilde; i++) {
+        for (int j = 0; j < col_tilde; j++) {
+            int part_index = j + i * col_tilde;
+
+            int whole_i = bli_min(i, num_row_part_whole);
+            int partial_i = bli_min(row_tilde - num_row_part_whole, i - whole_i);
+
+            int whole_j = bli_min(j, num_col_part_whole);
+            int partial_j = bli_min(col_tilde - num_col_part_whole, j - whole_j);
+
+            if (i < num_row_part_whole)
+                part_m[part_index] = row_part_size + 1;
+            else
+                part_m[part_index] = row_part_size;
+
+            if (j < num_col_part_whole)
+                part_n[part_index] = col_part_size + 1;
+            else
+                part_n[part_index] = col_part_size;
+
+            row_off[part_index] = whole_i * (row_part_size + 1) + partial_i * row_part_size;
+
+            col_off[part_index] = whole_j * (col_part_size + 1) + partial_j * col_part_size;
+        }
+    }
+}
+
+void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t fmm) {
+
     static int registered = false;
 
     bli_init_once();
@@ -78,27 +139,27 @@ void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )
     cntx_t* cntx = NULL;
     rntm_t* rntm = NULL;
     
-	// Check the operands.
-	// if ( bli_error_checking_is_enabled() )
-	// 	bli_gemm_check( alpha, A, B, beta, C, cntx );
+    // Check the operands.
+    // if ( bli_error_checking_is_enabled() )
+    //  bli_gemm_check( alpha, A, B, beta, C, cntx );
 
-	// Check for zero dimensions, alpha == 0, or other conditions which
-	// mean that we don't actually have to perform a full l3 operation.
-	if ( bli_l3_return_early_if_trivial( alpha, A, B, beta, C ) == BLIS_SUCCESS )
-		return;
+    // Check for zero dimensions, alpha == 0, or other conditions which
+    // mean that we don't actually have to perform a full l3 operation.
+    if ( bli_l3_return_early_if_trivial( alpha, A, B, beta, C ) == BLIS_SUCCESS )
+        return;
 
-	// Default to using native execution.
-	num_t dt = bli_obj_dt( C );
-	ind_t im = BLIS_NAT;
+    // Default to using native execution.
+    num_t dt = bli_obj_dt( C );
+    ind_t im = BLIS_NAT;
 
-	// If necessary, obtain a valid context from the gks using the induced
-	// method id determined above.
-	if ( cntx == NULL ) cntx = bli_gks_query_cntx();
+    // If necessary, obtain a valid context from the gks using the induced
+    // method id determined above.
+    if ( cntx == NULL ) cntx = bli_gks_query_cntx();
 
-	// Alias A, B, and C in case we need to apply transformations.
-	obj_t A_local;
-	obj_t B_local;
-	obj_t C_local;
+    // Alias A, B, and C in case we need to apply transformations.
+    obj_t A_local;
+    obj_t B_local;
+    obj_t C_local;
 
     dim_t m, k, n;
     obj_t A0, B0, C0;
@@ -110,8 +171,11 @@ void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )
     dim_t m_edge, m_whole, k_edge, k_whole, n_edge, n_whole;
     dim_t m_splits, k_splits, n_splits;
 
-    // For <2, 2, 2> Strassen -> This needs to be made generic. 
-    m_splits = 2, k_splits = 2, n_splits = 2;
+    const int M_TILDE = fmm.m_tilde;
+    const int N_TILDE = fmm.n_tilde;
+    const int K_TILDE = fmm.k_tilde;
+
+    m_splits = M_TILDE, k_splits = K_TILDE, n_splits = N_TILDE;
 
     m_edge = m % ( m_splits * DGEMM_MR );
     k_edge = k % ( k_splits );
@@ -120,48 +184,38 @@ void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )
     k_whole = (k - k_edge); 
     n_whole = (n - n_edge);
 
-    //printf("m = %d, k = %d, n = %d\n", m, k, n);
-    //printf("m_edge = %d, k_edge = %d, n_edge = %d\n", m_edge, k_edge, n_edge);
-
-    //printf("m_whole = %d, k_whole = %d, n_whole %d\n", m_whole, k_whole, n_whole);
-
     bl_acquire_spart (m_splits, k_splits, 0, 0, A, &A0 );
     bl_acquire_spart (k_splits, n_splits, 0, 0, B, &B0 );
     bl_acquire_spart (m_splits, n_splits, 0, 0, C, &C0 );
 
 #if 1
     bli_obj_alias_submatrix( &A0, &A_local );
-	bli_obj_alias_submatrix( &B0, &B_local );
-	bli_obj_alias_submatrix( &C0, &C_local );
+    bli_obj_alias_submatrix( &B0, &B_local );
+    bli_obj_alias_submatrix( &C0, &C_local );
 #else
     bli_obj_alias_submatrix( A, &A_local );
-	bli_obj_alias_submatrix( B, &B_local );
-	bli_obj_alias_submatrix( C, &C_local );
+    bli_obj_alias_submatrix( B, &B_local );
+    bli_obj_alias_submatrix( C, &C_local );
 #endif
-	gemm_cntl_t cntl;
-	bli_gemm_cntl_init
-	(
-	  im,
-	  BLIS_GEMM,
-	  alpha,
-	  &A_local,
-	  &B_local,
-	  beta,
-	  &C_local,
-	  cntx,
-	  &cntl
-	);
+    gemm_cntl_t cntl;
+    bli_gemm_cntl_init
+    (
+      im,
+      BLIS_GEMM,
+      alpha,
+      &A_local,
+      &B_local,
+      beta,
+      &C_local,
+      cntx,
+      &cntl
+    );
 
     fmm_params_t paramsA, paramsB, paramsC;
-    // paramsA.id = 1;
-    // paramsB.id = 2;
-    // paramsC.id = 3;
+
     paramsA.m_max = m; paramsA.n_max = k;
     paramsB.m_max = n; paramsB.n_max = k;
     paramsC.m_max = n; paramsC.n_max = m;
-    // printf("\nPARAMS A %d %d\n\n", m, k);
-    // printf("\nPARAMS B %d %d\n\n", k, n);
-
     paramsC.local = &C_local;
 
 #if 1
@@ -177,90 +231,24 @@ void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )
     bli_gemm_cntl_set_params((const void *) &paramsC, &cntl);
 #endif
 
-    // There is probably a better way to define these...?? I don't like this. 
-    /*
-    1 0 0 0 1 0 0
-    1 0 -1 -1 0 -1 0
-    0 -1 0 0 1 1 -1
-    0 0 -1 0 0 0 -1
-    #
-    1 0 0 -1 1 -1 0
-    0 -1 0 0 1 0 0
-    0 0 -1 1 0 0 0
-    0 1 -1 0 0 -1 1
-    #
-    1 0 0 -1 0 0 0
-    -1 -1 0 0 1 1 0
-    0 0 1 1 0 -1 1
-    0 1 0 0 0 0 -1
-    */
-    int U[4][7] = {{ 1,  0,  0,  0,  1,  0,  0}, 
-                   { 1,  0, -1, -1,  0, -1,  0}, 
-                   { 0, -1,  0,  0,  1,  1, -1}, 
-                   { 0,  0, -1,  0,  0,  0, -1} };
-
-    int V[4][7] = { { 1,  0,  0, -1,  1, -1,  0}, 
-                    { 0, -1,  0,  0,  1,  0,  0}, 
-                    { 0,  0, -1,  1,  0,  0,  0}, 
-                    { 0,  1, -1,  0,  0, -1,  1} } ;
-
-    int W[4][7] = {{ 1,  0,  0, -1,  0,  0,  0}, 
-                   {-1, -1,  0,  0,  1,  1,  0},
-                   { 0,  0,  1,  1,  0, -1,  1}, 
-                   { 0,  1,  0,  0,  0, 0,  -1}};
-    
-    // For Matrix A
-    // (0,0)
-    // (0, k/2)
-    // (m/2, 0)
-    // (m/2, k/2)
-
     m_whole = m;
     n_whole = n;
     k_whole = k;
 
-    dim_t row_off_A[4], col_off_A[4];
+    dim_t row_off_A[M_TILDE * K_TILDE], col_off_A[M_TILDE * K_TILDE];
+    dim_t part_m_A[M_TILDE * K_TILDE], part_n_A[M_TILDE * K_TILDE];
 
-    row_off_A[0] = 0,         col_off_A[0] = 0;
-    row_off_A[1] = 0,         col_off_A[1] = (k_whole+1)/2;
-    row_off_A[2] = (m_whole+1)/2, col_off_A[2] = 0;
-    row_off_A[3] = (m_whole+1)/2, col_off_A[3] = (k_whole+1)/2;
+    init_part_offsets(row_off_A, col_off_A, part_m_A, part_n_A, m_whole, k_whole, M_TILDE, K_TILDE);
 
+    dim_t row_off_B[K_TILDE * N_TILDE], col_off_B[K_TILDE * N_TILDE];
+    dim_t part_m_B[K_TILDE * N_TILDE], part_n_B[K_TILDE * N_TILDE];
 
-    // For Matrix B
-    // (0, 0)
-    // (0, n/2)
-    // (k/2, 0)
-    // (k/2, n/2)
+    init_part_offsets(col_off_B, row_off_B, part_n_B, part_m_B, k_whole, n_whole, K_TILDE, N_TILDE); // since B is transposed... something idk.
 
-    dim_t row_off_B[4], col_off_B[4];
+    dim_t row_off_C[M_TILDE * N_TILDE], col_off_C[M_TILDE * N_TILDE];
+    dim_t part_m_C[M_TILDE * N_TILDE], part_n_C[M_TILDE * N_TILDE];
 
-    // row_off_B[0] = 0,         col_off_B[0] = 0;
-    // row_off_B[1] = 0,         col_off_B[1] = (n_whole+1)/2;
-    // row_off_B[2] = (k_whole+1)/2, col_off_B[2] = 0;
-    // row_off_B[3] = (k_whole+1)/2, col_off_B[3] = (n_whole+1)/2;
-
-    row_off_B[0] = 0,                       col_off_B[0] = 0;
-    row_off_B[1] = (n_whole+1)/2,           col_off_B[1] = 0;
-    row_off_B[2] = 0,                       col_off_B[2] = (k_whole+1)/2;
-    row_off_B[3] = (n_whole+1)/2,           col_off_B[3] = (k_whole+1)/2;
-
-    // For Matrix C
-    // (0, 0)
-    // (0, n/2)
-    // (m/2, 0)
-    // (m/2, n/2)
-
-    dim_t row_off_C[4], col_off_C[4];
-
-    row_off_C[0] = 0,         col_off_C[0] = 0;
-    row_off_C[1] = (n_whole+1)/2,         col_off_C[1] = 0;
-    row_off_C[2] = 0, col_off_C[2] = (m_whole+1)/2;
-    row_off_C[3] = (n_whole+1)/2, col_off_C[3] = (m_whole+1)/2;
-
-    // printf("%d %d | %d \n", m_whole, k_whole, m_edge;
-
-    // if (false)printf("\n\nSET UP %d %d %d\n\n\n", m, n, k);
+    init_part_offsets(col_off_C, row_off_C, part_n_C, part_m_C, m_whole, n_whole, M_TILDE, N_TILDE);
 
     for ( dim_t r = 0; r < FMM_BLIS_MULTS; r++ )
     {
@@ -269,73 +257,38 @@ void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )
         paramsB.nsplit = 0;
         paramsC.nsplit = 0;
 
-        //Zeroing out the elements before calling the next gemm.
-        for (dim_t i = 0; i < 4; i++)
+        for (dim_t isplits = 0; isplits < M_TILDE * K_TILDE; isplits++)
         {
-            paramsA.coef[i] = 0;
-            paramsB.coef[i] = 0;
-            paramsC.coef[i] = 0;
-
-            paramsA.off_m[i] = 0;
-            paramsA.off_n[i] = 0;
-
-            paramsB.off_m[i] = 0;
-            paramsB.off_n[i] = 0;
-
-            paramsC.off_m[i] = 0;
-            paramsC.off_n[i] = 0;
-        }
-
-        for (dim_t isplits = 0; isplits < 4; isplits++)
-        {
-            if(U[isplits][r] != 0)
-            {
-                ((float*)paramsA.coef)[paramsA.nsplit] = U[isplits][r];
-                // printf("\n\nHEY %f -- %d\n\n", creal(
-                    // ((double complex*)paramsA.coef)[isplits]
-                    // ), paramsA.nsplit);
-            }
-            else {
-                // printf("\n\nOHH %f\n\n", creal((((complex double)*)paramsA.coef)[isplits]));
-            }
-
-            if(V[isplits][r] != 0)
-            {
-                //(when packing, m is the "short micro-panel dimension (m or n)
-	            // ", and n is the "long micro-panel dimension (k)")
-                // paramsB.coef[paramsB.nsplit] = V[isplits][r];
-                ((float*)paramsB.coef)[paramsB.nsplit] = V[isplits][r];
-            }
-            if(W[isplits][r] != 0)
-            {
-                // paramsC.coef[paramsC.nsplit] = W[isplits][r];
-                ((float*)paramsC.coef)[paramsC.nsplit] = W[isplits][r];
-            }
-
+            ((float*)paramsA.coef)[paramsA.nsplit] = _U(isplits, r);
             paramsA.off_m[paramsA.nsplit] = row_off_A[isplits];
             paramsA.off_n[paramsA.nsplit] = col_off_A[isplits];
+            paramsA.part_m[paramsA.nsplit] = part_m_A[isplits];
+            paramsA.part_n[paramsA.nsplit] = part_n_A[isplits];
             paramsA.nsplit++;
+        }
 
+        for (dim_t isplits = 0; isplits < K_TILDE * N_TILDE; isplits++)
+        {
+            ((float*)paramsB.coef)[paramsB.nsplit] = _V(isplits, r);
             paramsB.off_m[paramsB.nsplit] = row_off_B[isplits];
             paramsB.off_n[paramsB.nsplit] = col_off_B[isplits];
+            paramsB.part_m[paramsB.nsplit] = part_m_B[isplits];
+            paramsB.part_n[paramsB.nsplit] = part_n_B[isplits];
             paramsB.nsplit++;
+        }
 
+        for (dim_t isplits = 0; isplits < M_TILDE * N_TILDE; isplits++)
+        {
+            ((float*)paramsC.coef)[paramsC.nsplit] = _W(isplits, r);
             paramsC.off_m[paramsC.nsplit] = row_off_C[isplits];
             paramsC.off_n[paramsC.nsplit] = col_off_C[isplits];
+            paramsC.part_m[paramsC.nsplit] = part_m_C[isplits];
+            paramsC.part_n[paramsC.nsplit] = part_n_C[isplits];
             paramsC.nsplit++;
         }
 
-        // printf("\n\nHEY %d %p\n\n", ((double*)paramsA.coef)[0], paramsB.coef);
-        // printf("\n\nparamsB.coef %p\n\n", ((double*)paramsB.coef));
-        // printf("paramsA %5.3f paramsB %5.3f", ((double*)paramsA.coef)[0], ((double*)paramsB.coef)[0]);
-
-        // printf("paramsA %5.3f paramsB %5.3f", ((double*)paramsA.coef)[0], ((double*)paramsB.coef)[0]);
-	    // Invoke the internal back-end via the thread handler.
-        if (DEBUG_strassen)
-            printf("\n\n==============MULT=============\n\n");
-
-	    bli_l3_thread_decorator
-	    (
+        bli_l3_thread_decorator
+        (
             &A_local,
             &B_local,
             &C_local,
@@ -343,7 +296,10 @@ void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )
             ( cntl_t* )&cntl,
             rntm
         );
-        // if (1) break;
     }
+}
 
+void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )
+{
+    bli_strassen_ab_ex( alpha, A, B, beta, C, STRASSEN_FMM );
 }

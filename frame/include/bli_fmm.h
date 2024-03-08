@@ -58,6 +58,7 @@ extern "C" {
 #define C_ref( i, j ) C_ref[ (j)*ldc_ref + (i) ]
 #define C( i, j )     C[ (j)*ldc + (i) ]
 
+extern fmm_t STRASSEN_FMM;
 
 #define DGEMM_MC 96
 #define DGEMM_NC 4096 // 2052 //
@@ -65,6 +66,16 @@ extern "C" {
 #define DGEMM_MR 8
 #define DGEMM_NR 6
 
+void do_fmm_test();
+
+void bli_strassen_ab_ex( 
+        obj_t* alpha, 
+        obj_t* A, 
+        obj_t* B, 
+        obj_t* beta, 
+        obj_t* C,
+        fmm_t fmm
+        );
 
 void bli_strassen_ab( 
         obj_t* alpha, 
@@ -74,9 +85,11 @@ void bli_strassen_ab(
         obj_t* C 
         );
 
+fmm_t new_fmm(const char* file_name);
+
+void free_fmm(fmm_t fmm);
+
 void test_bli_strassen( int m, int n, int k );
-
-
 
 void bl_dgemm(
         int    m,
