@@ -52,10 +52,20 @@ extern siz_t FMM_BLIS_GEMM_UKR;
 // Parameter structures for kernels
 //
 
-#define FMM_BLIS_MULTS 49
+#define FMM_BLIS_MULTS 7
 #define MAX_NUM_PARTS 16
 
-// #define FMM_BLIS_MAX_SPLITS 2 // for 1-level Strassen
+typedef struct fmm_s {
+
+    int m_tilde;
+    int n_tilde;
+    int k_tilde;
+    int R;
+
+    int* U;
+    int* V;
+    int* W;
+} fmm_t;
 
 // The same structure is used for packing and in the micro-kernel, but
 // each packing node and the micro-kernel each get a separate instance with distinct

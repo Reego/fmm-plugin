@@ -34,6 +34,7 @@
 */
 
 #include "blis.h"
+
 #include STRINGIFY_INT(PASTEMAC(plugin,BLIS_PNAME_INFIX).h)
 
 siz_t FMM_BLIS_PACK_UKR;

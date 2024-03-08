@@ -8,8 +8,12 @@
 #define K_CONST X
 
 #define DEBUG_test 0
-#define RUN_trials 1
+#define RUN_trials 0
 #define SQUARE 0
+
+#define _U( i,j ) fmm.U[ (i)*fmm.R + (j) ]
+#define _V( i,j ) fmm.V[ (i)*fmm.R + (j) ]
+#define _W( i,j ) fmm.W[ (i)*fmm.R + (j) ]
 
 void my_mm(obj_t* A, obj_t* B, obj_t* C, dim_t m, dim_t n, dim_t k) {
 
@@ -37,9 +41,13 @@ void my_mm(obj_t* A, obj_t* B, obj_t* C, dim_t m, dim_t n, dim_t k) {
     }
 }
 
-void test_bli_strassen_ex( int m, int n, int k, int debug )
+int test_bli_strassen_ex( int m, int n, int k, int debug )
 {   
+    fmm_t fmm = new_fmm("222.txt");
+
     obj_t* null = 0;
+
+    int failed = 0;
 
     num_t dt;
 	//dim_t m, n, k;
@@ -82,20 +90,6 @@ void test_bli_strassen_ex( int m, int n, int k, int debug )
 	alpha = &BLIS_ONE;
 	beta  = &BLIS_ONE;
 
-#if 0
-
-    A    = (double*)malloc( sizeof(double) * m * k );
-    B    = (double*)malloc( sizeof(double) * k * n );
-
-    lda     = m;
-    ldb     = k;
-    ldc     = ( ( m - 1 ) / DGEMM_MR + 1 ) * DGEMM_MR;
-    ldc_ref = ( ( m - 1 ) / DGEMM_MR + 1 ) * DGEMM_MR;
-    C     = bl_malloc_aligned( ldc, n + 4, sizeof(double) );
-    C_ref = bl_malloc_aligned( ldc, n + 4, sizeof(double) );
-
-#endif
-
 
 #if 1
     bli_randm( &B );
@@ -135,13 +129,7 @@ void test_bli_strassen_ex( int m, int n, int k, int debug )
         // bli_printm( "matrix 'b', initialized by columns:", &B, "%5.3f", "" );
     }
 
-#endif 
-
-#if 0
-	bli_printm( "a: randomized", &A, "%7.4f", "" );
-	// bli_printm( "b: set to 1.0", &B, "%4.1f", "" );
-	bli_printm( "c: initial value", &C, "%4.1f", "" );
-#endif 
+#endif a
 
     nrepeats = 1;
 
@@ -170,64 +158,12 @@ void test_bli_strassen_ex( int m, int n, int k, int debug )
 
         }
     }
-#endif 
-
-#if 0 
-    //wrote this part to test the linear combination + packing routine. 
-    dim_t ks = 2; 
-    dim_t k_part = k;
-
-    obj_t  Alarge, Blarge;
-
-    bli_obj_create( dt, m, k*ks, rsA*ks, csA, &Alarge );
-    bli_randm( &Alarge );
-
-    bli_obj_create( dt, k*ks, n, rsB, csB, &Blarge );
-    bli_randm( &Blarge );
-
-
-    obj_t A0, A1;
-    bli_acquire_mpart_ndim( BLIS_FWD, BLIS_SUBPART0,
-		                        k_part, k_part, &Alarge, &A0 );
-	bli_acquire_mpart_ndim( BLIS_FWD, BLIS_SUBPART1,
-		                        k_part, k_part, &Alarge, &A1 );
-
-
-    obj_t B0, B1;
-    bli_acquire_mpart_mdim( BLIS_FWD, BLIS_SUBPART0, 
-                                k_part, k_part, &Blarge, &B0 );
-	bli_acquire_mpart_mdim( BLIS_FWD, BLIS_SUBPART1, 
-                                k_part, k_part, &Blarge, &B1 );
-
-    dim_t m0, m1, k0, k1; 
-    dim_t offm0, offk0, offm1, offk1;
-
-    m0 = bli_obj_length( &A0 ); 
-    k0 = bli_obj_width( &A0 ); 
-
-    m1 = bli_obj_length( &A1 ); 
-    k1 = bli_obj_width( &A1 ); 
-
-    offm0 = bli_obj_off( BLIS_M, &A0 );
-    offk0 = bli_obj_off( BLIS_N, &A0 );
-
-    offm1 = bli_obj_off( BLIS_M, &A1 );
-    offk1 = bli_obj_off( BLIS_N, &A1 );
-
-    obj_t Aadd;
-    bli_obj_create( dt, m, k_part, rsA, csA, &Aadd );
-    bli_copym( &A0 , &Aadd);
-
-    obj_t Badd;
-    bli_obj_create( dt, k_part, n, rsB, csB, &Badd );
-    bli_copym( &B0 , &Badd);
-   
 #endif
 
     for ( i = 0; i < nrepeats; i ++ ) {
         bl_dgemm_beg = bl_clock();
         {
-            bli_strassen_ab( alpha, &A, &B, beta, &C );
+            bli_strassen_ab_ex( alpha, &A, &B, beta, &C, fmm);
         }
         bl_dgemm_time = bl_clock() - bl_dgemm_beg;
 
@@ -253,13 +189,6 @@ void test_bli_strassen_ex( int m, int n, int k, int debug )
         }
     }
 
-#if 0
-
-    bli_printm( "C: after value", &C, "%4.1f", "" );
-
-    bli_printm( "C_ref: after value", &C_ref, "%4.1f", "" );
-#endif 
-
     double        resid, resid_other;
     obj_t  norm;
 	double junk;
@@ -281,32 +210,16 @@ void test_bli_strassen_ex( int m, int n, int k, int debug )
     // Compute overall floating point operations.
     flops = ( m * n / ( 1000.0 * 1000.0 * 1000.0 ) ) * ( 2 * k );
 
-
-    // bli_copym( &A, &diffM );
-    // double resid_other;
-    // bli_subm( &A, &diffM );
-    // bli_normfm( &diffM, &norm );
-    // bli_getsc( &norm, &resid_other, &junk );
-
     if (!debug)
         printf( "%5d\t %5d\t %5d\t %5.2lf\t %5.2lf\t %5.2g\t %5.2g\n",
                 m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid, resid_other );
     else {
         if (resid > .0000001) {
-            // bli_printm( "matrix 'a', initialized by columns:", &A, "%5.3f", "" );
-            // bli_printm( "matrix 'b', initialized by columns:", &B, "%5.3f", "" );
-            // bli_printm( "matrix 'c', initialized by columns:", &C, "%5.3f", "" );
+            failed = 1;
             printf("\n\n");
             printf( "--> %5d\t %5d\t %5d\t %5.2lf\t %5.2lf\t %5.2g\t %5.2g\n",
                     m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid, resid_other );
             printf("\n\n");
-            // bli_printm( "RESULT 'C', initialized by columns:", &C, "%5.3f", "" );
-            // bli_printm( "REFERENCE 'C_REF', initialized by columns:", &C_ref, "%5.3f", "" );
-            // bli_abort();
-        }
-        else {
-            // printf( "%5d\t %5d\t %5d\t %5.2lf\t %5.2lf\t %5.2g\t %5.2g\n",
-                // m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid, resid_other );
         }
     }
     //printf( "%5d\t %5d\t %5d\t %5.2lf\n",
@@ -323,51 +236,50 @@ void test_bli_strassen_ex( int m, int n, int k, int debug )
     bli_obj_free( &C_ref );
     bli_obj_free( &diffM );
 
+    free_fmm(fmm);
+
+    return failed;
 }
 
 void test_bli_strassen( int m, int n, int k )
-{   test_bli_strassen_ex(m, n, k, false);
+{   test_bli_strassen_ex(m, n, k, true);
 }
 
 int main( int argc, char *argv[] )
 {
-
     #if RUN_trials
-    int LIMIT = 100;
-    int START = 2;
-    int END = 100;
+    int LIMIT = 24004;
+    int START = 8000;
+    int END = 8004;
+
+    int failed = 0;
 
     // for (int l = 0; l < LIMIT; l++) {
         for (int m = START; m < END; m++) {
             for (int n = START; n < END; n++) {
                 for (int k = START; k < END; k++) {
-                    if (true || m + n + k == 65) {
+                    if (m + n + k <= LIMIT) {
                         #if SQUARE
                         if (m == n && n == k)
-                            test_bli_strassen_ex(m, n, k, 1);
+                            failed += test_bli_strassen_ex(4, 4, k, 0);
                         #else
-                            test_bli_strassen_ex(m, n, k, 1);
+                            failed += test_bli_strassen_ex(4, 4, k, 0);
                         #endif
                     }
                 }
             }
         }
+
+    printf("\n\n\n=======================\nFailed %d tests\n\n", failed);
     // }
     #else
 
     int m, n, k;
+    m = 3; n = 13; k = 7;
 
-    m = 20; n = 20; k = 10;
-
-    test_bli_strassen_ex( m, n, k, 1);
-
-    // m = 1000; n = 1000; k = 1017;
+    test_bli_strassen_ex( m, n, k, 0);
 
     // test_bli_strassen_ex( m, n, k, 1);
-
-    // m = M_CONST; 
-    // n = N_CONST;
-    // k = K_CONST;
     #endif
 
     // #if 0
