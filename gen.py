@@ -1,8 +1,10 @@
-SRC_FILE = "./322.txt"
+import argparse
 
-def main():
+DEF_SRC_FILE = "./222.txt"
+
+def main(src_file):
 	
-	with open (SRC_FILE) as f:
+	with open (src_file) as f:
 
 		part_dims = next(f)
 
@@ -33,4 +35,13 @@ def main():
 
 
 if __name__ == "__main__":
-	main()
+
+	import argparse
+ 
+	msg = "Adding description"
+	 
+	# Initialize parser
+	parser = argparse.ArgumentParser()
+	parser.add_argument("-s", default=DEF_SRC_FILE)
+	args = parser.parse_args()
+	main(args.s)

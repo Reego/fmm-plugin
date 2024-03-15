@@ -62,11 +62,13 @@ void PASTEMAC3(plugin_init,BLIS_PNAME_INFIX,BLIS_CNAME_INFIX,BLIS_REF_SUFFIX)( P
 {
 	cntx_t* cntx = ( cntx_t* )bli_gks_lookup_id( PASTECH(BLIS_ARCH,BLIS_CNAME_UPPER_INFIX) );
 
-	func_t pack_ukr, gemm_ukr;
+	func_t pack_ukr, pack_symm_ukr, gemm_ukr;
 	gen_func_init( &pack_ukr, PASTECH2(packm_fmm,BLIS_CNAME_INFIX,BLIS_REF_SUFFIX) );
+  gen_func_init( &pack_symm_ukr, PASTECH2(packm_symm_fmm,BLIS_CNAME_INFIX,BLIS_REF_SUFFIX) );
 	gen_func_init( &gemm_ukr, PASTECH2(gemm_fmm,BLIS_CNAME_INFIX,BLIS_REF_SUFFIX) );
 
 	bli_cntx_set_ukr( FMM_BLIS_PACK_UKR, &pack_ukr, cntx );
+  bli_cntx_set_ukr( FMM_BLIS_PACK_UKR_SYMM, &pack_symm_ukr, cntx );
 	bli_cntx_set_ukr( FMM_BLIS_GEMM_UKR, &gemm_ukr, cntx );
 }
 

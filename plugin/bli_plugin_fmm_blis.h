@@ -43,6 +43,7 @@
 // Use global kernel id variables instead of passing by argument
 
 extern siz_t FMM_BLIS_PACK_UKR;
+extern siz_t FMM_BLIS_PACK_UKR_SYMM;
 extern siz_t FMM_BLIS_GEMM_UKR;
 
 #define plugin_fmm_blis_params
@@ -104,6 +105,28 @@ typedef struct fmm_params_t
 #define GENTPROT( ctype, ch, config_infix ) \
 \
 void PASTEMAC3(ch,packm_fmm,config_infix,BLIS_REF_SUFFIX) \
+     ( \
+             struc_t strucc, \
+             diag_t  diagc, \
+             uplo_t  uploc, \
+             conj_t  conjc, \
+             pack_t  schema, \
+             bool    invdiag, \
+             dim_t   panel_dim, \
+             dim_t   panel_len, \
+             dim_t   panel_dim_max, \
+             dim_t   panel_len_max, \
+             dim_t   panel_dim_off, \
+             dim_t   panel_len_off, \
+             dim_t   panel_bcast, \
+       const void*   kappa, \
+       const void*   c, inc_t incc, inc_t ldc, \
+             void*   p,             inc_t ldp, \
+       const void*   params, \
+       const cntx_t* cntx  \
+     ); \
+\
+void PASTEMAC3(ch,packm_symm_fmm,config_infix,BLIS_REF_SUFFIX) \
      ( \
              struc_t strucc, \
              diag_t  diagc, \

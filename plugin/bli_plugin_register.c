@@ -38,6 +38,7 @@
 #include STRINGIFY_INT(PASTEMAC(plugin,BLIS_PNAME_INFIX).h)
 
 siz_t FMM_BLIS_PACK_UKR;
+siz_t FMM_BLIS_PACK_UKR_SYMM;
 siz_t FMM_BLIS_GEMM_UKR;
 
 err_t PASTEMAC(plugin_register,BLIS_PNAME_INFIX)( PASTECH2(plugin,BLIS_PNAME_INFIX,_params) )
@@ -45,6 +46,7 @@ err_t PASTEMAC(plugin_register,BLIS_PNAME_INFIX)( PASTECH2(plugin,BLIS_PNAME_INF
 	err_t err;
 
 	err = bli_gks_register_ukr(&FMM_BLIS_PACK_UKR);
+  err = bli_gks_register_ukr(&FMM_BLIS_PACK_UKR_SYMM);
 	err = bli_gks_register_ukr(&FMM_BLIS_GEMM_UKR);
 
 	if ( err != BLIS_SUCCESS )
