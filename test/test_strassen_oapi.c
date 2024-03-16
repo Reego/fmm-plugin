@@ -316,8 +316,8 @@ int other2()
     bli_strassen_ab_symm( alpha, &a, &b, beta, &c );
     bli_printm( "c: after symm", &c, "%4.1f", "" );
 
-    bli_strassen_ab(alpha, &a, &b, beta, &c_ref );
-    // bli_symm(side, alpha, &a, &b, beta, &c_ref);
+    // bli_strassen_ab(alpha, &a, &b, beta, &c_ref );
+    bli_symm(side, alpha, &a, &b, beta, &c_ref);
     bli_printm( "c_ref: after symm", &c_ref, "%4.1f", "" );
 
     // Free the objects.

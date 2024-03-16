@@ -166,6 +166,7 @@ void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C
     num_t dt = bli_obj_dt( C );
     ind_t im = BLIS_NAT;
 
+
     // If necessary, obtain a valid context from the gks using the induced
     // method id determined above.
     if ( cntx == NULL ) cntx = bli_gks_query_cntx();
@@ -350,6 +351,15 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
     num_t dt = bli_obj_dt( C );
     ind_t im = BLIS_NAT;
 
+    if ( bli_obj_is_complex( C ) )
+    {
+        // Find the highest priority induced method that is both enabled and
+        // available for the current operation. (If an induced method is
+        // available but not enabled, or simply unavailable, BLIS_NAT will
+        // be returned here.)
+        im = bli_symmind_find_avail( dt );
+    }
+
     // If necessary, obtain a valid context from the gks using the induced
     // method id determined above.
     if ( cntx == NULL ) cntx = bli_gks_query_cntx();
@@ -427,6 +437,48 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
     bli_gemm_cntl_set_packa_params((const void *) &paramsB, &cntl);
     bli_gemm_cntl_set_packb_params((const void *) &paramsA, &cntl);
     bli_gemm_cntl_set_params((const void *) &paramsC, &cntl);
+
+    if ( im == BLIS_1M )
+    {
+        pack_t schema_a, schema_b;
+        int mr_scale = 1;
+        int mc_scale = 1;
+        int nr_scale = 1;
+        int nc_scale = 1;
+        int kc_scale = 1;
+
+        if ( ! row_pref )
+        {
+            schema_a = BLIS_PACKED_ROW_PANELS_1E;
+            schema_b = BLIS_PACKED_COL_PANELS_1R;
+            mr_scale = 2;
+            mc_scale = 2;
+        }
+        else
+        {
+            schema_a = BLIS_PACKED_ROW_PANELS_1R;
+            schema_b = BLIS_PACKED_COL_PANELS_1E;
+            nr_scale = 2;
+            nc_scale = 2;
+        }
+
+        kc_scale = 2;
+        // real_gemm_ukr = gemm_ukr;
+        // gemm_ukr = bli_cntx_get_ukr_dt( dt_comp, BLIS_GEMM1M_UKR, cntx );
+
+        bli_gemm_cntl_set_packa_schema( schema_a, &cntl );
+        bli_gemm_cntl_set_packa_schema( schema_b, &cntl );
+
+        cntl->dt_comp  = dt;
+        cntl->dt_out   = dt;
+        // cntl->ukr      = ukr;
+        // cntl->real_ukr = real_ukr;
+        cntl->row_pref = row_pref;
+        cntl->mr       = mr;
+        cntl->nr       = nr;
+        cntl->mr_scale = mr_scale;
+        cntl->nr_scale = nr_scale;
+    }
 #endif
 
     m_whole = m;
@@ -498,6 +550,6 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
 }
 
 void bli_strassen_ab_symm( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C) {
-    // bli_strassen_ab_symm_ex(alpha, A, B, beta, C, CLASSICAL_FMM);
-    bli_strassen_ab_symm_ex(alpha, A, B, beta, C, STRASSEN_FMM);
+    bli_strassen_ab_symm_ex(alpha, A, B, beta, C, CLASSICAL_FMM);
+    // bli_strassen_ab_symm_ex(alpha, A, B, beta, C, STRASSEN_FMM);
 }
