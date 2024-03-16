@@ -498,6 +498,6 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
 }
 
 void bli_strassen_ab_symm( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C) {
-    bli_strassen_ab_symm_ex(alpha, A, B, beta, C, CLASSICAL_FMM);
-    // bli_strassen_ab_symm_ex(alpha, A, B, beta, C, STRASSEN_FMM);
+    // bli_strassen_ab_symm_ex(alpha, A, B, beta, C, CLASSICAL_FMM);
+    bli_strassen_ab_symm_ex(alpha, A, B, beta, C, STRASSEN_FMM);
 }

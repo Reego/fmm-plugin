@@ -248,6 +248,88 @@ void test_bli_strassen( int m, int n, int k )
 {   test_bli_strassen_ex(m, n, k, true);
 }
 
+int other2()
+{
+    num_t dt;
+    dim_t m, n, k;
+    inc_t rs, cs;
+    side_t side;
+
+    obj_t a, b, c, c_ref;
+    obj_t* alpha;
+    obj_t* beta;
+
+
+    //
+    // This file demonstrates level-3 operations.
+    //
+
+    //
+    // Example 3: Perform a symmetric matrix-matrix multiply (symm) operation.
+    //
+
+    printf( "\n#\n#  -- Example 3 --\n#\n\n" );
+
+    // Create some matrix and vector operands to work with.
+    dt = BLIS_DCOMPLEX;
+    m = 5; n = 6; rs = 0; cs = 0;
+    // m = 5; n = 5; rs = 0; cs = 0;
+    bli_obj_create( dt, m, m, rs, cs, &a );
+    bli_obj_create( dt, m, n, rs, cs, &b );
+    bli_obj_create( dt, m, n, rs, cs, &c );
+    bli_obj_create( dt, m, n, rs, cs, &c_ref );
+
+    // Set the scalars to use.
+    alpha = &BLIS_ONE;
+    beta  = &BLIS_ONE;
+
+    // Set the side operand.
+    side = BLIS_LEFT;
+
+    // Initialize matrices 'b' and 'c'.
+    // bli_setm( &BLIS_ONE,  &a ); // ###
+
+
+    bli_setm( &BLIS_ONE,  &b );
+    bli_setm( &BLIS_ZERO, &c );
+    bli_setm( &BLIS_ZERO, &c_ref );
+
+    // Zero out all of matrix 'a'. This is optional, but will avoid possibly
+    // displaying junk values in the unstored triangle.
+    bli_setm( &BLIS_ZERO, &a ); // ###
+
+    // Mark matrix 'a' as symmetric and stored in the upper triangle, and
+    // then randomize that upper triangle.
+
+
+    bli_obj_set_struc( BLIS_SYMMETRIC, &a ); // ###
+    bli_obj_set_uplo( BLIS_UPPER, &a ); // ###
+    bli_randm( &a ); // ###
+
+    bli_printm( "a: randomized (zeros in lower triangle)", &a, "%4.1f", "" );
+    bli_printm( "b: set to 1.0", &b, "%4.1f", "" );
+    bli_printm( "c: initial value", &c, "%4.1f", "" );
+
+    // c := beta * c + alpha * a * b, where 'a' is symmetric and upper-stored.
+    // Note that the first 'side' operand indicates the side from which matrix
+    // 'a' is multiplied into 'b'.
+    bli_strassen_ab_symm( alpha, &a, &b, beta, &c );
+    bli_printm( "c: after symm", &c, "%4.1f", "" );
+
+    bli_strassen_ab(alpha, &a, &b, beta, &c_ref );
+    // bli_symm(side, alpha, &a, &b, beta, &c_ref);
+    bli_printm( "c_ref: after symm", &c_ref, "%4.1f", "" );
+
+    // Free the objects.
+    bli_obj_free( &a );
+    bli_obj_free( &b );
+    bli_obj_free( &c );
+    bli_obj_free( &c_ref );
+
+
+    return 0;
+}
+
 
 int other()
 {
@@ -339,7 +421,7 @@ int main( int argc, char *argv[] )
 {
 
     if (true) {
-        other();
+        other2();
         return 0;
     }
 
