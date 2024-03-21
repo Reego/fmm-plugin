@@ -45,6 +45,7 @@
 extern siz_t FMM_BLIS_PACK_UKR;
 extern siz_t FMM_BLIS_PACK_UKR_SYMM;
 extern siz_t FMM_BLIS_GEMM_UKR;
+extern siz_t FMM_BLIS_GEMM1M_UKR;
 
 #define plugin_fmm_blis_params
 #define plugin_fmm_blis_params_only
@@ -162,11 +163,30 @@ void PASTEMAC3(ch,gemm_fmm,config_infix,BLIS_REF_SUFFIX) \
        const cntx_t*    cntx  \
      );
 
+#undef GENTFUNCRO
+#define GENTFUNCRO( ctype_r, chr, config_infix ) \
+\
+void PASTEMAC3(chr,gemm1m_fmm,config_infix,BLIS_REF_SUFFIX) \
+     ( \
+             dim_t      m, \
+             dim_t      n, \
+             dim_t      k, \
+       const void*      alpha0, \
+       const void*      a0, \
+       const void*      b0, \
+       const void*      beta0, \
+             void*      c0, inc_t rs_c, inc_t cs_c, \
+             auxinfo_t* auxinfo, \
+       const cntx_t*    cntx  \
+     ); \
+
 // Generate reference kernel prototypes for each configuration AND data type
 #undef GENTCONF
 #define GENTCONF( CONFIG, config ) \
 \
-INSERT_GENTPROT_BASIC( PASTECH(_,config) )
+INSERT_GENTPROT_BASIC( PASTECH(_,config) )\
+INSERT_GENTFUNCRO_BASIC( PASTECH(_,config) )
+
 
 INSERT_GENTCONF
 

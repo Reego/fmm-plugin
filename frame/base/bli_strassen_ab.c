@@ -438,47 +438,49 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
     bli_gemm_cntl_set_packb_params((const void *) &paramsA, &cntl);
     bli_gemm_cntl_set_params((const void *) &paramsC, &cntl);
 
-    if ( im == BLIS_1M )
-    {
-        pack_t schema_a, schema_b;
-        int mr_scale = 1;
-        int mc_scale = 1;
-        int nr_scale = 1;
-        int nc_scale = 1;
-        int kc_scale = 1;
+    // if ( im == BLIS_1M )
+    // {
+    //     pack_t schema_a, schema_b;
+    //     int mr_scale = 1;
+    //     int mc_scale = 1;
+    //     int nr_scale = 1;
+    //     int nc_scale = 1;
+    //     int kc_scale = 1;
 
-        if ( ! row_pref )
-        {
-            schema_a = BLIS_PACKED_ROW_PANELS_1E;
-            schema_b = BLIS_PACKED_COL_PANELS_1R;
-            mr_scale = 2;
-            mc_scale = 2;
-        }
-        else
-        {
-            schema_a = BLIS_PACKED_ROW_PANELS_1R;
-            schema_b = BLIS_PACKED_COL_PANELS_1E;
-            nr_scale = 2;
-            nc_scale = 2;
-        }
+    //     if ( ! row_pref )
+    //     {
+    //         schema_a = BLIS_PACKED_ROW_PANELS_1E;
+    //         schema_b = BLIS_PACKED_COL_PANELS_1R;
+    //         mr_scale = 2;
+    //         mc_scale = 2;
+    //     }
+    //     else
+    //     {
+    //         schema_a = BLIS_PACKED_ROW_PANELS_1R;
+    //         schema_b = BLIS_PACKED_COL_PANELS_1E;
+    //         nr_scale = 2;
+    //         nc_scale = 2;
+    //     }
 
-        kc_scale = 2;
-        // real_gemm_ukr = gemm_ukr;
-        // gemm_ukr = bli_cntx_get_ukr_dt( dt_comp, BLIS_GEMM1M_UKR, cntx );
+    //     kc_scale = 2;
+    //     gemm_ukr_ft gemm_ukr      = bli_cntx_get_ukr_dt( dt_comp, BLIS_GEMM_UKR, cntx );
+    //     gemm_ukr_ft real_gemm_ukr = NULL;
+    //     real_gemm_ukr = gemm_ukr;
+    //     gemm_ukr = bli_cntx_get_ukr_dt( dt_comp, BLIS_GEMM1M_UKR, cntx );
 
-        bli_gemm_cntl_set_packa_schema( schema_a, &cntl );
-        bli_gemm_cntl_set_packa_schema( schema_b, &cntl );
+    //     bli_gemm_cntl_set_packa_schema( schema_a, &cntl );
+    //     bli_gemm_cntl_set_packa_schema( schema_b, &cntl );
 
-        cntl->dt_comp  = dt;
-        cntl->dt_out   = dt;
-        // cntl->ukr      = ukr;
-        // cntl->real_ukr = real_ukr;
-        cntl->row_pref = row_pref;
-        cntl->mr       = mr;
-        cntl->nr       = nr;
-        cntl->mr_scale = mr_scale;
-        cntl->nr_scale = nr_scale;
-    }
+    //     cntl->dt_comp  = dt;
+    //     cntl->dt_out   = dt;
+    //     cntl->ukr      = ukr;
+    //     cntl->real_ukr = real_ukr;
+    //     cntl->row_pref = row_pref;
+    //     cntl->mr       = mr;
+    //     cntl->nr       = nr;
+    //     cntl->mr_scale = mr_scale;
+    //     cntl->nr_scale = nr_scale;
+    // }
 #endif
 
     m_whole = m;
