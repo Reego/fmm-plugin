@@ -155,7 +155,6 @@ void PASTEMAC(ch,opname) \
   const dim_t nr  = PASTECH(BLIS_NR_, ch); \
   const dim_t bbm = PASTECH(BLIS_BBM_, ch); \
   const dim_t bbn = PASTECH(BLIS_BBN_, ch); \
-  printf("woo\n");\
 \
   if ( bli_is_1e_packed( schema ) ) \
   { \
@@ -234,7 +233,8 @@ void PASTEMAC(ch,varname) \
        const cntx_t* cntx  \
      ) \
 { \
-    const ctype* c_begin = ((ctype*)c) - (panel_dim_off * incc * 2) - (panel_len_off * ldc *2);\
+    const ctype* c_begin = ((ctype*)c) - (panel_dim_off * incc) - (panel_len_off * ldc);\
+    if (0) printf("c_begin: %ld\n", (long) c_begin);\
     int acc = acc_;\
     ctype* cntl          = ( cntl_t* )params; \
     \
@@ -244,28 +244,32 @@ void PASTEMAC(ch,varname) \
     dim_t   panel_len_pad = panel_len_max - panel_len; \
 \
     dim_t   packmrnr      = bli_packm_def_cntl_bmult_m_def( cntl ); \
-    const ctype_r* restrict c1     = c; \
+    const ctype* restrict c1     = c; \
     ctype* restrict p1        = p; \
 \
     for ( dim_t k = 0; k < panel_len; k++ ) \
     { \
         for ( dim_t i = 0; i < panel_dim; i++ ) {\
             for ( dim_t d = 0; d < panel_bcast; d++ ) {\
-                dim_t panel_dim_total_off = panel_dim + i;\
-                dim_t panel_len_total_off = panel_len + p;\
+                dim_t panel_dim_total_off = panel_dim_off + i;\
+                dim_t panel_len_total_off = panel_len_off + k;\
                 doff_t diagoffc = panel_dim_total_off - panel_len_total_off;\
-                ctype* c_use = (c1 + i * incc); \
-                if ( bli_is_triangular( strucc )) {\
-                    if (diagoffc < 0 && bli_is_upper( uploc ) || \
-                        diagoffc > 0 && bli_is_lower( uploc )) {\
+                ctype* c_use = (c1 + i * incc);\
+                if ( bli_is_symmetric( strucc )) {\
+                    if (0 && acc != 0) printf("IS TRI\n");\
+                    if (0 && acc == 0) printf("%d %d %d %d\n", panel_len, ldp, panel_dim, sizeof(ctype_r));\
+                    if (diagoffc > 0 && bli_is_upper( uploc ) || \
+                        diagoffc < 0 && bli_is_lower( uploc )) {\
                         c_use = c_begin + panel_len_total_off * incc + panel_dim_total_off * ldc;\
+                        if (0) printf("mem offset: %d | %d %d\n", panel_len_total_off * incc + panel_dim_total_off * ldc, incc, ldc);\
                     }\
                 }\
                 if (acc == 0) {\
-                    PASTEMAC(ch, scal2js)( kappa_cast, *(c_use), *(p1 + i*panel_bcast + d) ); \
+                    if (0) printf("pos %d %d and pos: %ld\n", i, k, c_use);\
+                    PASTEMAC(ch, scal2s)( kappa_cast, *(c_use), *(p1 + i*panel_bcast + d) ); \
                 }\
                 else {\
-                    PASTEMAC(ch, axpyjs)( kappa_cast, *(c_use), *(p1 + i*panel_bcast + d) ); \
+                    PASTEMAC(ch, axpys)( kappa_cast, *(c_use), *(p1 + i*panel_bcast + d) ); \
                 }\
             }\
         }\
@@ -321,8 +325,12 @@ void PASTEMAC3(ch,opname,arch,suf) \
     dim_t* restrict part_m = params->part_m;\
     dim_t* restrict part_n = params->part_n; \
     num_t   dt            = PASTEMAC(ch,type); \
-    printf("%d %d\n", dt, bli_is_1m_packed(schema));\
+    if (0) printf("c is %ld\n", c);\
+    if (0) printf("%d %d\n", dt, bli_is_1m_packed(schema));\
 \
+    if (ldp == 4 && 0 && coef[0] != 0) {\
+        printf("====================\n");\
+    }\
     dim_t nsplit = params->nsplit; \
     for (int s = 0; s < nsplit; s++) \
     { \
@@ -491,6 +499,21 @@ void PASTEMAC3(ch,opname,arch,suf) \
               ); \
             }\
         }\
+    }\
+    if (ldp == 4 && 0 && coef[0] != 0) {\
+    printf("\n\n");\
+    printf("COEFS %f %f %f %f \t %d %d\n", coef[0], coef[1], coef[2], coef[3], panel_bcast, ldc);\
+    printf("OTHER VALUES %d %d %d %d %d\n\n", ldp, panel_dim, panel_len, panel_dim_max, panel_len_max);\
+    ctype* p_use = ( ctype* )p; \
+    for (dim_t d = 0; d < panel_dim_max; d++) {\
+        for( dim_t l = 0; l < panel_len_max; l++) {\
+            ctype res = p_use[panel_dim_max * l + d];\
+            if (1) printf("%d:%.1lf %.1lf  ", panel_dim_max * l + d, PASTEMAC(ch, real)(res), PASTEMAC(ch, imag)(res));\
+            if (0) printf("%d:%.1lf  ", panel_dim_max * l + d, res);\
+        }\
+        printf("\n");\
+    }\
+    printf("_______________\n");\
     }\
 }
 

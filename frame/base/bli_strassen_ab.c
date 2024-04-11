@@ -316,7 +316,8 @@ void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C
 
 void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )
 {
-    bli_strassen_ab_ex( alpha, A, B, beta, C, STRASSEN_FMM );
+    bli_strassen_ab_ex( alpha, A, B, beta, C, CLASSICAL_FMM );
+    // bli_strassen_ab_ex( alpha, A, B, beta, C, STRASSEN_FMM );
 }
 
 void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t fmm) {
@@ -358,6 +359,9 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
         // available but not enabled, or simply unavailable, BLIS_NAT will
         // be returned here.)
         im = bli_symmind_find_avail( dt );
+        const prec_t comp_prec = bli_obj_comp_prec( C );
+        const num_t dt_comp = ( im == BLIS_1M ? BLIS_REAL : bli_dt_domain( dt ) ) | comp_prec;
+        // im = bli_gemmind_find_avail( dt );
     }
 
     // If necessary, obtain a valid context from the gks using the induced
@@ -441,30 +445,12 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
     // handle complex values
     if ( im == BLIS_1M )
     {
-        const bool row_pref = bli_cntx_get_ukr_prefs_dt( dt, BLIS_GEMM_UKR_ROW_PREF, cntx ); \
-        pack_t schema_a, schema_b;
-
-        if ( ! row_pref )
-        {
-            schema_a = BLIS_PACKED_ROW_PANELS_1E;
-            schema_b = BLIS_PACKED_COL_PANELS_1R;
-        }
-        else
-        {
-            schema_a = BLIS_PACKED_ROW_PANELS_1R;
-            schema_b = BLIS_PACKED_COL_PANELS_1E;
-        }
-
         gemm_ukr_ft gemm_ukr      = bli_cntx_get_ukr_dt( dt, BLIS_GEMM_UKR, cntx );
 
         bli_gemm_var_cntl_set_real_ukr_simple(gemm_ukr, &cntl);
-
         bli_gemm_var_cntl_set_ukr_simple(
-            bli_cntx_get_ukr_dt(dt, FMM_BLIS_GEMM1M_UKR, cntx), &cntl);
-
-        // is this necessary?
-        bli_gemm_cntl_set_packa_schema( schema_a, &cntl );
-        bli_gemm_cntl_set_packa_schema( schema_b, &cntl );
+            bli_cntx_get_ukr_dt(dt, FMM_BLIS_GEMM1M_UKR, cntx), &cntl
+        );
     }
 #endif
 
@@ -533,6 +519,8 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
             ( cntl_t* )&cntl,
             rntm
         );
+
+        if (0) return; // TODO
     }
 }
 
