@@ -85,6 +85,10 @@ void bli_strassen_ab(
         obj_t* C 
         );
 
+void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t fmm);
+
+void bli_strassen_ab_symm( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C);
+
 fmm_t new_fmm(const char* file_name);
 
 void free_fmm(fmm_t fmm);

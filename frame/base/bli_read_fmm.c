@@ -10,16 +10,16 @@
 #define _V( i,j ) fmm.V[ (i)*fmm.R + (j) ]
 #define _W( i,j ) fmm.W[ (i)*fmm.R + (j) ]
 
-void do_fmm_test() {
-    fmm_t fmm = STRASSEN_FMM;
+// void do_fmm_test() {
+//     fmm_t fmm = STRASSEN_FMM;
 
-    for (int i = 0; i < 4; i++) {
-        for (int j = 0; j < 7; j++) {
-            printf("%d ", _U(i, j));
-        }
-        printf("\n");
-    }
-}
+//     for (int i = 0; i < 4; i++) {
+//         for (int j = 0; j < 7; j++) {
+//             printf("%d ", _U(i, j));
+//         }
+//         printf("\n");
+//     }
+// }
 
 fmm_t new_fmm(const char* file_name) {
 
