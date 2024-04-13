@@ -249,23 +249,9 @@ void PASTEMAC(ch,varname) \
 		   explicitly store zeros */ \
 		if ( bli_is_lower( uploc ) && bli_is_triangular( strucc ) ) \
 		{ \
-			if ( bli_is_1m_packed( schema ) ) \
+			if ( 0) \
 			{ \
-			    ctype_r* restrict zero = PASTEMAC(chr,0); \
-\
-				PASTEMAC2(chr,setm,BLIS_TAPI_EX_SUF) \
-				( \
-				  BLIS_NO_CONJUGATE, \
-				  0, \
-				  BLIS_NONUNIT_DIAG, \
-				  BLIS_DENSE, \
-				  packmrnr, \
-				  p12_len_max * 2, \
-				  zero, \
-				  ( ctype_r* )p12, 1, ldp, \
-				  cntx, \
-				  NULL  \
-				); \
+			    \
 			} \
 			else \
 			{ \

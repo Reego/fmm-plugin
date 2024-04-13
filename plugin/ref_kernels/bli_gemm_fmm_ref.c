@@ -121,4 +121,3 @@ void PASTEMAC3(ch,opname,arch,suf) \
 }
 
 INSERT_GENTFUNC_BASIC( gemm_fmm, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX )
-

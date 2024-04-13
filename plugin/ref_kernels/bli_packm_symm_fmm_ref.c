@@ -46,7 +46,7 @@
 #include <complex.h>
 #include STRINGIFY_INT(../PASTEMAC(plugin,BLIS_PNAME_INFIX).h)
 
-#define PACKM_1E_BODY( ctype, ch, pragma, cdim, dfac, inca2, op ) \
+#define PACKM_1E_BODY( ctype, ch, pragma, cdim, dfac, inca2, op, ctype_r ) \
 \
 do \
 { \
@@ -59,7 +59,7 @@ do \
       dim_t panel_dim_total_off = panel_dim + i;\
       dim_t panel_len_total_off = panel_len + k;\
       doff_t diagoffc = panel_dim_total_off - panel_len_total_off;\
-      ctype* c_use = (c1 + i * incc2); \
+      ctype_r* c_use = (c1 + i * incc2); \
       if ( bli_is_triangular( strucc )) {\
           if (diagoffc < 0 && bli_is_upper( uploc ) || \
               diagoffc > 0 && bli_is_lower( uploc )) {\
@@ -88,7 +88,7 @@ do \
 } while(0)
 
 
-#define PACKM_1R_BODY( ctype, ch, pragma, cdim, dfac, inca2, op ) \
+#define PACKM_1R_BODY( ctype, ch, pragma, cdim, dfac, inca2, op, ctype_r ) \
 \
 do \
 { \
@@ -96,11 +96,11 @@ do \
   { \
     pragma \
     for ( dim_t i = 0; i < cdim; i++ ) \
-    for ( dim_t d = 0; d < dfac; d++ ) \
+    for ( dim_t d = 0; d < dfac; d++ )  {\
       dim_t panel_dim_total_off = panel_dim + i;\
       dim_t panel_len_total_off = panel_len + k;\
       doff_t diagoffc = panel_dim_total_off - panel_len_total_off;\
-      ctype* c_use = (c1 + i * incc2); \
+      ctype_r* c_use = (c1 + i * incc2); \
       if ( bli_is_triangular( strucc )) {\
           if (diagoffc < 0 && bli_is_upper( uploc ) || \
               diagoffc > 0 && bli_is_lower( uploc )) {\
@@ -116,6 +116,7 @@ do \
                                          *(pi1_r + i*dfac + d), *(pi1_i + i*dfac + d) ); \
       }\
       \
+    }\
     c1 += ldc2; \
     pi1_r  += ldp2; \
     pi1_i  += ldp2; \
@@ -126,15 +127,21 @@ do \
 #undef  GENTFUNCCO
 #define GENTFUNCCO( ctype, ctype_r, ch, chr, opname, acc_ ) \
 \
-void PASTEMAC3(ch,opname,acc) \
+void PASTEMAC(ch,opname) \
      ( \
-             conj_t  conja, \
+             struc_t strucc, \
+             diag_t  diagc, \
+             uplo_t  uploc, \
+             conj_t  conjc, \
              pack_t  schema, \
+             bool    invdiag, \
              dim_t   panel_dim, \
-             dim_t   panel_dim_max, \
-             dim_t   panel_bcast, \
              dim_t   panel_len, \
+             dim_t   panel_dim_max, \
              dim_t   panel_len_max, \
+             dim_t   panel_dim_off, \
+             dim_t   panel_len_off, \
+             dim_t   panel_bcast, \
        const void*   kappa, \
        const void*   c, inc_t incc, inc_t ldc, \
              void*   p,             inc_t ldp, \
@@ -143,7 +150,7 @@ void PASTEMAC3(ch,opname,acc) \
      ) \
 { \
   int acc = acc_;\
-  const ctype* c_begin = ((ctype*)c) - (panel_dim_off * incc) - (panel_len_off * ldc);\
+  const ctype_r* c_begin = ((ctype*)c) - (panel_dim_off * incc * 2) - (panel_len_off * ldc * 2);\
   const dim_t mr  = PASTECH(BLIS_MR_, ch); \
   const dim_t nr  = PASTECH(BLIS_NR_, ch); \
   const dim_t bbm = PASTECH(BLIS_BBM_, ch); \
@@ -162,7 +169,7 @@ void PASTEMAC3(ch,opname,acc) \
           ctype_r* restrict pi1_ri  = ( ctype_r* )p; \
           ctype_r* restrict pi1_ir  = ( ctype_r* )p + ldp; \
 \
-    PACKM_1E_BODY( ctype, ch, PRAGMA_SIMD, panel_dim, panel_bcast, incc2, scal2ris ); \
+    PACKM_1E_BODY( ctype, ch, PRAGMA_SIMD, panel_dim, panel_bcast, incc2, scal2ris, ctype_r ); \
 \
     if (acc == 0) {\
       PASTEMAC(chr,set0s_edge) \
@@ -185,7 +192,7 @@ void PASTEMAC3(ch,opname,acc) \
           ctype_r* restrict pi1_r   = ( ctype_r* )p; \
           ctype_r* restrict pi1_i   = ( ctype_r* )p + ldp; \
 \
-    PACKM_1R_BODY( ctype, ch, PRAGMA_SIMD, panel_dim, panel_bcast, incc2, scal2ris ); \
+    PACKM_1R_BODY( ctype, ch, PRAGMA_SIMD, panel_dim, panel_bcast, incc2, scal2ris, ctype_r ); \
 \
     if (acc == 0) {\
       PASTEMAC(chr,set0s_edge) \
@@ -227,8 +234,9 @@ void PASTEMAC(ch,varname) \
      ) \
 { \
     const ctype* c_begin = ((ctype*)c) - (panel_dim_off * incc) - (panel_len_off * ldc);\
+    if (0) printf("c_begin: %ld\n", (long) c_begin);\
     int acc = acc_;\
-    cntl_t* cntl          = ( cntl_t* )params; \
+    ctype* cntl          = ( cntl_t* )params; \
     \
     ctype           kappa_cast = *( ctype* )kappa; \
 \
@@ -243,21 +251,25 @@ void PASTEMAC(ch,varname) \
     { \
         for ( dim_t i = 0; i < panel_dim; i++ ) {\
             for ( dim_t d = 0; d < panel_bcast; d++ ) {\
-                dim_t panel_dim_total_off = panel_dim + i;\
-                dim_t panel_len_total_off = panel_len + p;\
+                dim_t panel_dim_total_off = panel_dim_off + i;\
+                dim_t panel_len_total_off = panel_len_off + k;\
                 doff_t diagoffc = panel_dim_total_off - panel_len_total_off;\
-                ctype* c_use = (c1 + i * incc); \
-                if ( bli_is_triangular( strucc )) {\
-                    if (diagoffc < 0 && bli_is_upper( uploc ) || \
-                        diagoffc > 0 && bli_is_lower( uploc )) {\
+                ctype* c_use = (c1 + i * incc);\
+                if ( bli_is_symmetric( strucc )) {\
+                    if (0 && acc != 0) printf("IS TRI\n");\
+                    if (0 && acc == 0) printf("%d %d %d %d\n", panel_len, ldp, panel_dim, sizeof(ctype_r));\
+                    if (diagoffc > 0 && bli_is_upper( uploc ) || \
+                        diagoffc < 0 && bli_is_lower( uploc )) {\
                         c_use = c_begin + panel_len_total_off * incc + panel_dim_total_off * ldc;\
+                        if (0) printf("mem offset: %d | %d %d\n", panel_len_total_off * incc + panel_dim_total_off * ldc, incc, ldc);\
                     }\
                 }\
                 if (acc == 0) {\
-                    PASTEMAC(ch, scal2js)( kappa_cast, *(c_use), *(p1 + i*panel_bcast + d) ); \
+                    if (0) printf("pos %d %d and pos: %ld\n", i, k, c_use);\
+                    PASTEMAC(ch, scal2s)( kappa_cast, *(c_use), *(p1 + i*panel_bcast + d) ); \
                 }\
                 else {\
-                    PASTEMAC(ch, axpyjs)( kappa_cast, *(c_use), *(p1 + i*panel_bcast + d) ); \
+                    PASTEMAC(ch, axpys)( kappa_cast, *(c_use), *(p1 + i*panel_bcast + d) ); \
                 }\
             }\
         }\
@@ -312,7 +324,13 @@ void PASTEMAC3(ch,opname,arch,suf) \
     inc_t* restrict off_k = params->off_n; \
     dim_t* restrict part_m = params->part_m;\
     dim_t* restrict part_n = params->part_n; \
+    num_t   dt            = PASTEMAC(ch,type); \
+    if (0) printf("c is %ld\n", c);\
+    if (0) printf("%d %d\n", dt, bli_is_1m_packed(schema));\
 \
+    if (ldp == 4 && 0 && coef[0] != 0) {\
+        printf("====================\n");\
+    }\
     dim_t nsplit = params->nsplit; \
     for (int s = 0; s < nsplit; s++) \
     { \
@@ -330,25 +348,74 @@ void PASTEMAC3(ch,opname,arch,suf) \
             dim_t panel_dim_use = bli_min(panel_dim, part_m[s] - panel_dim_off ); \
             dim_t panel_len_use = bli_min(panel_len, part_n[s] - panel_len_off ); \
             \
-            PASTEMAC(ch,packm__struc_cxk_0)(strucc,\
-                diagc,\
-                uploc,\
-                conjc,\
-                schema,\
-                invdiag,\
-                panel_dim_use,\
-                panel_len_use,\
-                panel_dim_max,\
-                panel_len_max,\
-                panel_dim_off,\
-                panel_len_off,\
-                panel_bcast,\
-                &lambda,\
-                c_use, incc, ldc,\
-                p_use, ldp,\
-                params_,\
-                cntx\
-                );\
+            if ( bli_is_1m_packed( schema )) \
+            {\
+              if (dt == 2) {\
+                bli_zpackm__1er_0(strucc,\
+                  diagc,\
+                  uploc,\
+                  conjc,\
+                  schema,\
+                  invdiag,\
+                  panel_dim_use,\
+                  panel_len_use,\
+                  panel_dim_max,\
+                  panel_len_max,\
+                  panel_dim_off,\
+                  panel_len_off,\
+                  panel_bcast,\
+                  &lambda,\
+                  c_use, incc, ldc,\
+                  p_use, ldp,\
+                  params_,\
+                  cntx\
+                  );\
+              }\
+              else if (dt == 3) {\
+                bli_cpackm__1er_0(strucc,\
+                  diagc,\
+                  uploc,\
+                  conjc,\
+                  schema,\
+                  invdiag,\
+                  panel_dim_use,\
+                  panel_len_use,\
+                  panel_dim_max,\
+                  panel_len_max,\
+                  panel_dim_off,\
+                  panel_len_off,\
+                  panel_bcast,\
+                  &lambda,\
+                  c_use, incc, ldc,\
+                  p_use, ldp,\
+                  params_,\
+                  cntx\
+                  );\
+              }\
+            \
+            }\
+            else\
+            { \
+              PASTEMAC(ch,packm__struc_cxk_0)(strucc,\
+                  diagc,\
+                  uploc,\
+                  conjc,\
+                  schema,\
+                  invdiag,\
+                  panel_dim_use,\
+                  panel_len_use,\
+                  panel_dim_max,\
+                  panel_len_max,\
+                  panel_dim_off,\
+                  panel_len_off,\
+                  panel_bcast,\
+                  &lambda,\
+                  c_use, incc, ldc,\
+                  p_use, ldp,\
+                  params_,\
+                  cntx\
+                  );\
+            }\
         } \
         else if (coef[s] != 0) \
         { \
@@ -364,51 +431,91 @@ void PASTEMAC3(ch,opname,arch,suf) \
             dim_t panel_dim_use = bli_min(panel_dim, part_m[s] - panel_dim_off ); \
             dim_t panel_len_use = bli_min(panel_len, part_n[s] - panel_len_off ); \
             \
-            PASTEMAC(ch,packm__struc_cxk_1)(strucc,\
-                diagc,\
-                uploc,\
-                conjc,\
-                schema,\
-                invdiag,\
-                panel_dim_use,\
-                panel_len_use,\
-                panel_dim_use,\
-                panel_len_use,\
-                total_off_m,\
-                total_off_n,\
-                panel_bcast,\
-                &lambda,\
-                c_use, incc, ldc,\
-                p_use, ldp,\
-                params_,\
-                cntx\
-            );\
+            if ( bli_is_1m_packed( schema ) ) \
+            {\
+              if (dt == 2) {\
+                bli_zpackm__1er_1(strucc,\
+                    diagc,\
+                    uploc,\
+                    conjc,\
+                    schema,\
+                    invdiag,\
+                    panel_dim_use,\
+                    panel_len_use,\
+                    panel_dim_use,\
+                    panel_len_use,\
+                    total_off_m,\
+                    total_off_n,\
+                    panel_bcast,\
+                    &lambda,\
+                    c_use, incc, ldc,\
+                    p_use, ldp,\
+                    params_,\
+                    cntx\
+                ); \
+              }\
+              else if (dt == 3) {\
+                bli_cpackm__1er_1(strucc,\
+                    diagc,\
+                    uploc,\
+                    conjc,\
+                    schema,\
+                    invdiag,\
+                    panel_dim_use,\
+                    panel_len_use,\
+                    panel_dim_use,\
+                    panel_len_use,\
+                    total_off_m,\
+                    total_off_n,\
+                    panel_bcast,\
+                    &lambda,\
+                    c_use, incc, ldc,\
+                    p_use, ldp,\
+                    params_,\
+                    cntx\
+                ); \
+              }\
+            }\
+            else \
+            { \
+              PASTEMAC(ch,packm__struc_cxk_1)(strucc,\
+                  diagc,\
+                  uploc,\
+                  conjc,\
+                  schema,\
+                  invdiag,\
+                  panel_dim_use,\
+                  panel_len_use,\
+                  panel_dim_use,\
+                  panel_len_use,\
+                  total_off_m,\
+                  total_off_n,\
+                  panel_bcast,\
+                  &lambda,\
+                  c_use, incc, ldc,\
+                  p_use, ldp,\
+                  params_,\
+                  cntx\
+              ); \
+            }\
         }\
     }\
+    if (ldp == 4 && 0 && coef[0] != 0) {\
+    printf("\n\n");\
+    printf("COEFS %f %f %f %f \t %d %d\n", coef[0], coef[1], coef[2], coef[3], panel_bcast, ldc);\
+    printf("OTHER VALUES %d %d %d %d %d\n\n", ldp, panel_dim, panel_len, panel_dim_max, panel_len_max);\
+    ctype* p_use = ( ctype* )p; \
+    for (dim_t d = 0; d < panel_dim_max; d++) {\
+        for( dim_t l = 0; l < panel_len_max; l++) {\
+            ctype res = p_use[panel_dim_max * l + d];\
+            if (1) printf("%d:%.1lf %.1lf  ", panel_dim_max * l + d, PASTEMAC(ch, real)(res), PASTEMAC(ch, imag)(res));\
+            if (0) printf("%d:%.1lf  ", panel_dim_max * l + d, res);\
+        }\
+        printf("\n");\
+    }\
+    printf("_______________\n");\
+    }\
 }
-
-            // packm_ker_cast\
-            // (\
-            //     1,
-            //     strucc,\
-            //     diagc,\
-            //     uploc,\
-            //     conjc,\
-            //     schema,\
-            //     invdiag,\
-            //     panel_dim_use,\
-            //     panel_len_use,\
-            //     panel_dim_use,\
-            //     panel_len_use,\
-            //     total_off_m,\
-            //     total_off_n,\
-            //     panel_bcast,\
-            //     &lambda,\
-            //     c_use, incc, ldc,\
-            //     p_use, ldp,\
-            //     params_,\
-            //     cntx\
-            // );\
 
 
 INSERT_GENTFUNC_BASIC( packm_symm_fmm, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX )

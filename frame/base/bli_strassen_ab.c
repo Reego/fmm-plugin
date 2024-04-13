@@ -166,6 +166,7 @@ void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C
     num_t dt = bli_obj_dt( C );
     ind_t im = BLIS_NAT;
 
+
     // If necessary, obtain a valid context from the gks using the induced
     // method id determined above.
     if ( cntx == NULL ) cntx = bli_gks_query_cntx();
@@ -315,7 +316,8 @@ void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C
 
 void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )
 {
-    bli_strassen_ab_ex( alpha, A, B, beta, C, STRASSEN_FMM );
+    bli_strassen_ab_ex( alpha, A, B, beta, C, CLASSICAL_FMM );
+    // bli_strassen_ab_ex( alpha, A, B, beta, C, STRASSEN_FMM );
 }
 
 void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t fmm) {
@@ -349,6 +351,18 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
     // Default to using native execution.
     num_t dt = bli_obj_dt( C );
     ind_t im = BLIS_NAT;
+
+    if ( bli_obj_is_complex( C ) )
+    {
+        // Find the highest priority induced method that is both enabled and
+        // available for the current operation. (If an induced method is
+        // available but not enabled, or simply unavailable, BLIS_NAT will
+        // be returned here.)
+        im = bli_symmind_find_avail( dt );
+        const prec_t comp_prec = bli_obj_comp_prec( C );
+        const num_t dt_comp = ( im == BLIS_1M ? BLIS_REAL : bli_dt_domain( dt ) ) | comp_prec;
+        // im = bli_gemmind_find_avail( dt );
+    }
 
     // If necessary, obtain a valid context from the gks using the induced
     // method id determined above.
@@ -427,6 +441,17 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
     bli_gemm_cntl_set_packa_params((const void *) &paramsB, &cntl);
     bli_gemm_cntl_set_packb_params((const void *) &paramsA, &cntl);
     bli_gemm_cntl_set_params((const void *) &paramsC, &cntl);
+
+    // handle complex values
+    if ( im == BLIS_1M )
+    {
+        gemm_ukr_ft gemm_ukr      = bli_cntx_get_ukr_dt( dt, BLIS_GEMM_UKR, cntx );
+
+        bli_gemm_var_cntl_set_real_ukr_simple(gemm_ukr, &cntl);
+        bli_gemm_var_cntl_set_ukr_simple(
+            bli_cntx_get_ukr_dt(dt, FMM_BLIS_GEMM1M_UKR, cntx), &cntl
+        );
+    }
 #endif
 
     m_whole = m;
@@ -494,10 +519,12 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
             ( cntl_t* )&cntl,
             rntm
         );
+
+        if (0) return; // TODO
     }
 }
 
 void bli_strassen_ab_symm( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C) {
-    // bli_strassen_ab_symm_ex(alpha, A, B, beta, C, CLASSICAL_FMM);
-    bli_strassen_ab_symm_ex(alpha, A, B, beta, C, STRASSEN_FMM);
+    bli_strassen_ab_symm_ex(alpha, A, B, beta, C, CLASSICAL_FMM);
+    // bli_strassen_ab_symm_ex(alpha, A, B, beta, C, STRASSEN_FMM);
 }
