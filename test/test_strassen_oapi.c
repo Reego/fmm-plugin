@@ -10,7 +10,7 @@
 #define K_CONST X
 
 #define DEBUG_test 0
-#define RUN_trials 1
+#define RUN_trials 0
 #define SQUARE 0
 
 #define _U( i,j ) fmm.U[ (i)*fmm.R + (j) ]

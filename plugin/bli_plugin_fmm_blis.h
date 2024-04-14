@@ -98,6 +98,34 @@ typedef struct fmm_params_t
     obj_t* local;
 } fmm_params_t;
 
+struct fmm_cntl_s
+{
+    cntl_t cntl; // cntl field must be present and come first.
+    fmm_t* fmm;
+};
+typedef struct fmm_cntl_s fmm_cntl_t;
+
+struct fmm_gemm_cntl_s
+{
+    fmm_cntl_t fmm_cntl;
+    gemm_cntl_t gemm_cntl;
+};
+typedef struct fmm_gemm_cntl_s fmm_gemm_cntl_t;
+
+void bli_fmm_gemm_cntl_init
+     (
+             ind_t        im,
+             opid_t       family,
+       const obj_t*       alpha,
+             obj_t*       a,
+             obj_t*       b,
+       const obj_t*       beta,
+             obj_t*       c,
+       const cntx_t*      cntx,
+             gemm_cntl_t* cntl,
+             fmm_cntl_t* fmm_cntl
+     );
+
 //
 // Prototypes for reference kernels
 //

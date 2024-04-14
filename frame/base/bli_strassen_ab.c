@@ -404,24 +404,54 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
     bli_obj_alias_submatrix( &A0, &A_local );
     bli_obj_alias_submatrix( &B0, &B_local );
     bli_obj_alias_submatrix( &C0, &C_local );
+
+    // if (1) {
+    //     A_local = a;
+    //     B_local = b;
+    //     C_local = c;
+    // }
 #else
     bli_obj_alias_submatrix( A, &A_local );
     bli_obj_alias_submatrix( B, &B_local );
     bli_obj_alias_submatrix( C, &C_local );
 #endif
-    gemm_cntl_t cntl;
-    bli_gemm_cntl_init
-    (
-      im,
-      BLIS_GEMM,
-      alpha,
-      &A_local,
-      &B_local,
-      beta,
-      &C_local,
-      cntx,
-      &cntl
-    );
+    gemm_cntl_t cntl0;
+    gemm_cntl_t* cntl;
+
+    fmm_gemm_cntl_t fmm_gemm_cntl;
+    fmm_cntl_t* fmm_cntl = &fmm_gemm_cntl.fmm_cntl;
+
+    if (1) {
+        cntl = &cntl0;
+        bli_gemm_cntl_init
+        (
+          im,
+          BLIS_GEMM,
+          alpha,
+          &A_local,
+          &B_local,
+          beta,
+          &C_local,
+          cntx,
+          cntl
+        );
+    }
+    else {
+        cntl = &fmm_gemm_cntl.gemm_cntl;
+        bli_fmm_gemm_cntl_init
+        (
+          im,
+          BLIS_GEMM,
+          alpha,
+          &A,
+          &B,
+          beta,
+          &C,
+          cntx,
+          cntl,
+          &fmm_cntl
+        );
+    }
 
     fmm_params_t paramsA, paramsB, paramsC;
 
@@ -434,24 +464,47 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
     func_t *pack_ukr;
 
     pack_ukr = bli_cntx_get_ukrs( FMM_BLIS_PACK_UKR_SYMM, cntx );
-    bli_gemm_cntl_set_packa_ukr_simple( pack_ukr , &cntl );
-    bli_gemm_cntl_set_packb_ukr_simple( bli_cntx_get_ukrs( FMM_BLIS_PACK_UKR_SYMM, cntx ), &cntl );
-    bli_gemm_cntl_set_ukr_simple( bli_cntx_get_ukrs( FMM_BLIS_GEMM_UKR, cntx ), &cntl );
+    bli_gemm_cntl_set_packa_ukr_simple( pack_ukr , cntl );
+    bli_gemm_cntl_set_packb_ukr_simple( bli_cntx_get_ukrs( FMM_BLIS_PACK_UKR_SYMM, cntx ), cntl );
+    bli_gemm_cntl_set_ukr_simple( bli_cntx_get_ukrs( FMM_BLIS_GEMM_UKR, cntx ), cntl );
 
-    bli_gemm_cntl_set_packa_params((const void *) &paramsB, &cntl);
-    bli_gemm_cntl_set_packb_params((const void *) &paramsA, &cntl);
-    bli_gemm_cntl_set_params((const void *) &paramsC, &cntl);
+    bli_gemm_cntl_set_packa_params((const void *) &paramsB, cntl);
+    bli_gemm_cntl_set_packb_params((const void *) &paramsA, cntl);
+    bli_gemm_cntl_set_params((const void *) &paramsC, cntl);
 
     // handle complex values
     if ( im == BLIS_1M )
     {
         gemm_ukr_ft gemm_ukr      = bli_cntx_get_ukr_dt( dt, BLIS_GEMM_UKR, cntx );
 
-        bli_gemm_var_cntl_set_real_ukr_simple(gemm_ukr, &cntl);
+        bli_gemm_var_cntl_set_real_ukr_simple(gemm_ukr, cntl);
         bli_gemm_var_cntl_set_ukr_simple(
-            bli_cntx_get_ukr_dt(dt, FMM_BLIS_GEMM1M_UKR, cntx), &cntl
+            bli_cntx_get_ukr_dt(dt, FMM_BLIS_GEMM1M_UKR, cntx), cntl
         );
     }
+
+    ////
+    if (0) {
+
+        fmm_cntl->fmm = &fmm;
+
+        // bli_gemm_cntl_set_params((const void *) fmm, &cntl);
+        bli_l3_thread_decorator
+        (
+            &A,
+            &B,
+            &C,
+            cntx,
+            ( cntl_t* )&fmm_gemm_cntl,
+            rntm
+        );
+        return;
+    }
+    ////
+
+    bli_gemm_cntl_set_packa_params((const void *) &paramsB, cntl);
+    bli_gemm_cntl_set_packb_params((const void *) &paramsA, cntl);
+    bli_gemm_cntl_set_params((const void *) &paramsC, cntl);
 #endif
 
     m_whole = m;
@@ -516,7 +569,7 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
             &B_local,
             &C_local,
             cntx,
-            ( cntl_t* )&cntl,
+            ( cntl_t* )cntl,
             rntm
         );
 

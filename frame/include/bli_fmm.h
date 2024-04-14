@@ -95,6 +95,16 @@ void free_fmm(fmm_t fmm);
 
 void test_bli_strassen( int m, int n, int k );
 
+void bli_fmm_cntl
+     (
+       const obj_t*     a,
+       const obj_t*     b,
+       const obj_t*     c,
+       const cntx_t*    cntx,
+       const cntl_t*    cntl,
+             thrinfo_t* thread_par
+     );
+
 void bl_dgemm(
         int    m,
         int    n,
