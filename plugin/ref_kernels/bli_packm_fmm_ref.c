@@ -119,7 +119,6 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	  cntx \
 	); \
 	\
-\
 	for ( dim_t s = 1; s < nsplit; s++ ) \
 	{ \
 		PASTEMAC3(ch, s, ch, scal2s)( kappa_cast, coef[ s ], lambda );\
@@ -146,34 +145,6 @@ void PASTEMAC3(ch,opname,arch,suf) \
 			p_use += ldp; \
 		} \
 	} \
-	if (ldp == 4 && 0) {\
-	printf("====================\n");\
-	printf("COEFS %f %f %f %f \t %d %d\n", coef[0], coef[1], coef[2], coef[3], panel_bcast, ldc);\
-	printf("OTHER VALUES %d %d %d %d %d\n\n", ldp, panel_dim, panel_len, panel_dim_max, panel_len_max);\
-	p_use = ( ctype* )p; \
-	for (dim_t d = 0; d < panel_dim_max; d++) {\
-		for( dim_t l = 0; l < panel_len_max; l++) {\
-			ctype res = p_use[panel_dim_max * l + d];\
-			printf("%d:%.1lf %.1lf  ", panel_dim_max * l + d, PASTEMAC(ch, real)(res), PASTEMAC(ch, imag)(res));\
-		}\
-		printf("\n");\
-	}\
-	printf("====================\n\n\n");\
-	}\
-	if (ldp == 8 && 0) {\
-	printf("====================\n");\
-	printf("COEFS %f %f %f %f \t %d %d\n", coef[0], coef[1], coef[2], coef[3], panel_bcast, ldc);\
-	printf("OTHER VALUES %d %d %d %d %d\n\n", ldp, panel_dim, panel_len, panel_dim_max, panel_len_max);\
-	p_use = ( ctype* )p; \
-	for (dim_t d = 0; d < panel_dim_max; d++) {\
-		for( dim_t l = 0; l < panel_len_max; l++) {\
-			ctype res = p_use[panel_dim_max * l + d];\
-			printf("%d:%.1lf ", panel_dim_max * l + d, res);\
-		}\
-		printf("\n");\
-	}\
-	printf("====================\n\n\n");\
-	}\
 }
 
 INSERT_GENTFUNC_BASIC( packm_fmm, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX )

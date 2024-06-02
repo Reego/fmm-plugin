@@ -110,8 +110,6 @@ void PASTEMAC3(ch,opname,arch,suf) \
 		inc_t total_off_m = m0 + off_m[s];\
 		inc_t total_off_n = n0 + off_n[s];\
 		\
-		/*dim_t m_use = bli_min(part_m[s], bli_min( m, m_max - total_off_m ));*/ \
-		/*dim_t n_use = bli_min(part_n[s], bli_min( n, n_max - total_off_n ));*/ \
 		dim_t m_use  = bli_max(0, bli_min(m, part_m[s] - m0 )); \
 		dim_t n_use = bli_max(0, bli_min(n, part_n[s] - n0 )); \
 		PASTEMAC(ch,axpbys_mxn)( m_use, n_use, \

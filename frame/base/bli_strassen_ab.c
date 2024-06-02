@@ -7,12 +7,19 @@
 #define _V( i,j ) fmm.V[ (i)*fmm.R + (j) ]
 #define _W( i,j ) fmm.W[ (i)*fmm.R + (j) ]
 
+#define __U( i,j ) fmm->U[ (i)*fmm->R + (j) ]
+#define __V( i,j ) fmm->V[ (i)*fmm->R + (j) ]
+#define __W( i,j ) fmm->W[ (i)*fmm->R + (j) ]
+
+static packm_ker_ft GENARRAY(packm_struc_cxk,packm_struc_cxk);
+static packm_ker_ft GENARRAY2_ALL(packm_struc_cxk_md,packm_struc_cxk_md);
 
 /* Define Strassen's algorithm */
 int STRASSEN_FMM_U[4][7] = {{1, 0, 1, 0, 1, -1, 0}, {0, 0, 0, 0, 1, 0, 1}, {0, 1, 0, 0, 0, 1, 0}, {1, 1, 0, 1, 0, 0, -1}};
 int STRASSEN_FMM_V[4][7] = {{1, 1, 0, -1, 0, 1, 0}, {0, 0, 1, 0, 0, 1, 0}, {0, 0, 0, 1, 0, 0, 1}, {1, 0, -1, 0, 1, 0, 1}};
 int STRASSEN_FMM_W[4][7] = {{1, 0, 0, 1, -1, 0, 1}, {0, 0, 1, 0, 1, 0, 0}, {0, 1, 0, 1, 0, 0, 0}, {1, -1, 1, 0, 0, 1, 0}};
 
+/* Classical blocked matrix multiplication */
 int CLASSICAL_FMM_U[4][8] = {{1, 0, 1, 0, 0, 0, 0, 0}, {0, 1, 0, 1, 0, 0, 0, 0}, {0, 0, 0, 0, 1, 0, 1, 0}, {0, 0, 0, 0, 0, 1, 0, 1}};
 int CLASSICAL_FMM_V[4][8] = {{1, 0, 0, 0, 1, 0, 0, 0}, {0, 0, 1, 0, 0, 0, 1, 0}, {0, 1, 0, 0, 0, 1, 0, 0}, {0, 0, 0, 1, 0, 0, 0, 1}};
 int CLASSICAL_FMM_W[4][8] = {{1, 1, 0, 0, 0, 0, 0, 0}, {0, 0, 1, 1, 0, 0, 0, 0}, {0, 0, 0, 0, 1, 1, 0, 0}, {0, 0, 0, 0, 0, 0, 1, 1}};
@@ -37,6 +44,52 @@ fmm_t CLASSICAL_FMM = {
     .W = &CLASSICAL_FMM_W,
 };
 
+
+void bli_fmm_cntl_init_pushb
+     (
+             ind_t        im,
+             opid_t       family,
+       const obj_t*       alpha,
+             obj_t*       a,
+             obj_t*       b,
+       const obj_t*       beta,
+             obj_t*       c,
+       const cntx_t*      cntx,
+             gemm_cntl_t* cntl,
+             fmm_cntl_t* fmm_cntl,
+             int var
+     );
+
+void bli_fmm_gemm_cntl_init_var
+     (
+             ind_t        im,
+             opid_t       family,
+       const obj_t*       alpha,
+             obj_t*       a,
+             obj_t*       b,
+       const obj_t*       beta,
+             obj_t*       c,
+       const cntx_t*      cntx,
+             gemm_cntl_t* cntl,
+             fmm_cntl_t* fmm_cntl,
+             int var
+     );
+
+void bli_fmm_gemm_cntl_init
+     (
+             ind_t        im,
+             opid_t       family,
+       const obj_t*       alpha,
+             obj_t*       a,
+             obj_t*       b,
+       const obj_t*       beta,
+             obj_t*       c,
+       const cntx_t*      cntx,
+             gemm_cntl_t* cntl,
+             fmm_cntl_t* fmm_cntl
+     );
+
+
 void bl_acquire_spart 
      (
              dim_t     row_splits,
@@ -52,7 +105,7 @@ void bl_acquire_spart
     dim_t row_part, col_part; //size of partition
     dim_t row_left, col_left; // edge case
     inc_t  offm_inc = 0;
-	inc_t  offn_inc = 0;
+    inc_t  offn_inc = 0;
 
     m = bli_obj_length( obj ); 
     n = bli_obj_width( obj ); 
@@ -86,14 +139,14 @@ void bl_acquire_spart
     bli_obj_set_dims( row_part, col_part, sub_obj );
 
     offm_inc = split_rowidx * row_part;
-	offn_inc = split_colidx * col_part;
+    offn_inc = split_colidx * col_part;
 
     //Taken directly from BLIS. Need to verify if this is still true. 
     // Compute the diagonal offset based on the m and n offsets.
-	doff_t diagoff_inc = ( doff_t )offm_inc - ( doff_t )offn_inc;
+    doff_t diagoff_inc = ( doff_t )offm_inc - ( doff_t )offn_inc;
 
     bli_obj_inc_offs( offm_inc, offn_inc, sub_obj );
-	bli_obj_inc_diag_offset( diagoff_inc, sub_obj );
+    bli_obj_inc_diag_offset( diagoff_inc, sub_obj );
 
 }
 
@@ -134,7 +187,7 @@ void init_part_offsets(dim_t* row_off, dim_t* col_off, dim_t* part_m, dim_t* par
     }
 }
 
-void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t fmm) {
+void bli_strassen_ab_ex_var( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t fmm, int variant) {
 
     static int registered = false;
 
@@ -176,254 +229,22 @@ void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C
     obj_t B_local;
     obj_t C_local;
 
-    dim_t m, k, n;
     obj_t A0, B0, C0;
 
-    m = bli_obj_length( C );
-    n = bli_obj_width( C );
-    k = bli_obj_width( A );
-
-    dim_t m_edge, m_whole, k_edge, k_whole, n_edge, n_whole;
-    dim_t m_splits, k_splits, n_splits;
-
-    const int M_TILDE = fmm.m_tilde;
-    const int N_TILDE = fmm.n_tilde;
-    const int K_TILDE = fmm.k_tilde;
-
-    m_splits = M_TILDE, k_splits = K_TILDE, n_splits = N_TILDE;
-
-    m_edge = m % ( m_splits * DGEMM_MR );
-    k_edge = k % ( k_splits );
-    n_edge = n % ( n_splits * DGEMM_NR );
-    m_whole = (m - m_edge);
-    k_whole = (k - k_edge); 
-    n_whole = (n - n_edge);
-
-    bl_acquire_spart (m_splits, k_splits, 0, 0, A, &A0 );
-    bl_acquire_spart (k_splits, n_splits, 0, 0, B, &B0 );
-    bl_acquire_spart (m_splits, n_splits, 0, 0, C, &C0 );
-
-#if 1
-    bli_obj_alias_submatrix( &A0, &A_local );
-    bli_obj_alias_submatrix( &B0, &B_local );
-    bli_obj_alias_submatrix( &C0, &C_local );
-#else
     bli_obj_alias_submatrix( A, &A_local );
     bli_obj_alias_submatrix( B, &B_local );
     bli_obj_alias_submatrix( C, &C_local );
-#endif
-    gemm_cntl_t cntl;
-    bli_gemm_cntl_init
-    (
-      im,
-      BLIS_GEMM,
-      alpha,
-      &A_local,
-      &B_local,
-      beta,
-      &C_local,
-      cntx,
-      &cntl
-    );
 
-    fmm_params_t paramsA, paramsB, paramsC;
-
-    paramsA.m_max = m; paramsA.n_max = k;
-    paramsB.m_max = n; paramsB.n_max = k;
-    paramsC.m_max = n; paramsC.n_max = m;
-    paramsC.local = &C_local;
-
-#if 1
-    func_t *pack_ukr;
-
-    pack_ukr = bli_cntx_get_ukrs( FMM_BLIS_PACK_UKR, cntx );
-    bli_gemm_cntl_set_packa_ukr_simple( pack_ukr , &cntl );
-    bli_gemm_cntl_set_packb_ukr_simple( bli_cntx_get_ukrs( FMM_BLIS_PACK_UKR, cntx ), &cntl );
-    bli_gemm_cntl_set_ukr_simple( bli_cntx_get_ukrs( FMM_BLIS_GEMM_UKR, cntx ), &cntl );
-
-    bli_gemm_cntl_set_packa_params((const void *) &paramsB, &cntl);
-    bli_gemm_cntl_set_packb_params((const void *) &paramsA, &cntl);
-    bli_gemm_cntl_set_params((const void *) &paramsC, &cntl);
-#endif
-
-    m_whole = m;
-    n_whole = n;
-    k_whole = k;
-
-    dim_t row_off_A[M_TILDE * K_TILDE], col_off_A[M_TILDE * K_TILDE];
-    dim_t part_m_A[M_TILDE * K_TILDE], part_n_A[M_TILDE * K_TILDE];
-
-    init_part_offsets(row_off_A, col_off_A, part_m_A, part_n_A, m_whole, k_whole, M_TILDE, K_TILDE);
-
-    dim_t row_off_B[K_TILDE * N_TILDE], col_off_B[K_TILDE * N_TILDE];
-    dim_t part_m_B[K_TILDE * N_TILDE], part_n_B[K_TILDE * N_TILDE];
-
-    init_part_offsets(col_off_B, row_off_B, part_n_B, part_m_B, k_whole, n_whole, K_TILDE, N_TILDE); // since B is transposed... something idk.
-
-    dim_t row_off_C[M_TILDE * N_TILDE], col_off_C[M_TILDE * N_TILDE];
-    dim_t part_m_C[M_TILDE * N_TILDE], part_n_C[M_TILDE * N_TILDE];
-
-    init_part_offsets(col_off_C, row_off_C, part_n_C, part_m_C, m_whole, n_whole, M_TILDE, N_TILDE);
-
-    for ( dim_t r = 0; r < fmm.R; r++ )
-    {
-
-        paramsA.nsplit = 0;
-        paramsB.nsplit = 0;
-        paramsC.nsplit = 0;
-
-        for (dim_t isplits = 0; isplits < M_TILDE * K_TILDE; isplits++)
-        {
-            ((float*)paramsA.coef)[paramsA.nsplit] = _U(isplits, r);
-            paramsA.off_m[paramsA.nsplit] = row_off_A[isplits];
-            paramsA.off_n[paramsA.nsplit] = col_off_A[isplits];
-            paramsA.part_m[paramsA.nsplit] = part_m_A[isplits];
-            paramsA.part_n[paramsA.nsplit] = part_n_A[isplits];
-            paramsA.nsplit++;
-        }
-
-        for (dim_t isplits = 0; isplits < K_TILDE * N_TILDE; isplits++)
-        {
-            ((float*)paramsB.coef)[paramsB.nsplit] = _V(isplits, r);
-            paramsB.off_m[paramsB.nsplit] = row_off_B[isplits];
-            paramsB.off_n[paramsB.nsplit] = col_off_B[isplits];
-            paramsB.part_m[paramsB.nsplit] = part_m_B[isplits];
-            paramsB.part_n[paramsB.nsplit] = part_n_B[isplits];
-            paramsB.nsplit++;
-        }
-
-        for (dim_t isplits = 0; isplits < M_TILDE * N_TILDE; isplits++)
-        {
-            ((float*)paramsC.coef)[paramsC.nsplit] = _W(isplits, r);
-            paramsC.off_m[paramsC.nsplit] = row_off_C[isplits];
-            paramsC.off_n[paramsC.nsplit] = col_off_C[isplits];
-            paramsC.part_m[paramsC.nsplit] = part_m_C[isplits];
-            paramsC.part_n[paramsC.nsplit] = part_n_C[isplits];
-            paramsC.nsplit++;
-        }
-
-        bli_l3_thread_decorator
-        (
-            &A_local,
-            &B_local,
-            &C_local,
-            cntx,
-            ( cntl_t* )&cntl,
-            rntm
-        );
-    }
-}
-
-void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )
-{
-    bli_strassen_ab_ex( alpha, A, B, beta, C, CLASSICAL_FMM );
-    // bli_strassen_ab_ex( alpha, A, B, beta, C, STRASSEN_FMM );
-}
-
-void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t fmm) {
-
-    static int registered = false;
-
-    bli_init_once();
-
-    if (!registered) {
-        err_t err = bli_plugin_register_fmm_blis();
-        if (err != BLIS_SUCCESS)
-        {
-            printf("error %d\n",err);
-            bli_abort();
-        }
-        registered = true;
-    }
-
-    cntx_t* cntx = NULL;
-    rntm_t* rntm = NULL;
-    
-    // Check the operands.
-    // if ( bli_error_checking_is_enabled() )
-    //  bli_gemm_check( alpha, A, B, beta, C, cntx );
-
-    // Check for zero dimensions, alpha == 0, or other conditions which
-    // mean that we don't actually have to perform a full l3 operation.
-    if ( bli_l3_return_early_if_trivial( alpha, A, B, beta, C ) == BLIS_SUCCESS )
-        return;
-
-    // Default to using native execution.
-    num_t dt = bli_obj_dt( C );
-    ind_t im = BLIS_NAT;
-
-    if ( bli_obj_is_complex( C ) )
-    {
-        // Find the highest priority induced method that is both enabled and
-        // available for the current operation. (If an induced method is
-        // available but not enabled, or simply unavailable, BLIS_NAT will
-        // be returned here.)
-        im = bli_symmind_find_avail( dt );
-        const prec_t comp_prec = bli_obj_comp_prec( C );
-        const num_t dt_comp = ( im == BLIS_1M ? BLIS_REAL : bli_dt_domain( dt ) ) | comp_prec;
-        // im = bli_gemmind_find_avail( dt );
-    }
-
-    // If necessary, obtain a valid context from the gks using the induced
-    // method id determined above.
-    if ( cntx == NULL ) cntx = bli_gks_query_cntx();
-
-    // Alias A, B, and C in case we need to apply transformations.
-    obj_t A_local;
-    obj_t B_local;
-    obj_t C_local;
-
-    dim_t m, k, n;
-    obj_t A0, B0, C0;
-
-    m = bli_obj_length( C );
-    n = bli_obj_width( C );
-    k = bli_obj_width( A );
-
-    dim_t m_edge, m_whole, k_edge, k_whole, n_edge, n_whole;
-    dim_t m_splits, k_splits, n_splits;
-
-    const int M_TILDE = fmm.m_tilde;
-    const int N_TILDE = fmm.n_tilde;
-    const int K_TILDE = fmm.k_tilde;
-
-    m_splits = M_TILDE, k_splits = K_TILDE, n_splits = N_TILDE;
-
-    m_edge = m % ( m_splits * DGEMM_MR );
-    k_edge = k % ( k_splits );
-    n_edge = n % ( n_splits * DGEMM_NR );
-    m_whole = (m - m_edge);
-    k_whole = (k - k_edge); 
-    n_whole = (n - n_edge);
-
-    bl_acquire_spart (m_splits, k_splits, 0, 0, A, &A0 );
-    bl_acquire_spart (k_splits, n_splits, 0, 0, B, &B0 );
-    bl_acquire_spart (m_splits, n_splits, 0, 0, C, &C0 );
-
-#if 1
-    bli_obj_alias_submatrix( &A0, &A_local );
-    bli_obj_alias_submatrix( &B0, &B_local );
-    bli_obj_alias_submatrix( &C0, &C_local );
-
-    // if (1) {
-    //     A_local = a;
-    //     B_local = b;
-    //     C_local = c;
-    // }
-#else
-    bli_obj_alias_submatrix( A, &A_local );
-    bli_obj_alias_submatrix( B, &B_local );
-    bli_obj_alias_submatrix( C, &C_local );
-#endif
     gemm_cntl_t cntl0;
     gemm_cntl_t* cntl;
 
-    fmm_gemm_cntl_t fmm_gemm_cntl;
-    fmm_cntl_t* fmm_cntl = &fmm_gemm_cntl.fmm_cntl;
+    if (variant == -1) {
 
-    if (1) {
-        cntl = &cntl0;
-        bli_gemm_cntl_init
+        fmm_gemm_cntl_t fmm_gemm_cntl;
+        fmm_cntl_t* fmm_cntl = &(fmm_gemm_cntl.fmm_cntl);
+
+        cntl = &fmm_gemm_cntl.gemm_cntl;
+        bli_fmm_gemm_cntl_init
         (
           im,
           BLIS_GEMM,
@@ -433,135 +254,23 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
           beta,
           &C_local,
           cntx,
-          cntl
-        );
-    }
-    else {
-        cntl = &fmm_gemm_cntl.gemm_cntl;
-        bli_fmm_gemm_cntl_init
-        (
-          im,
-          BLIS_GEMM,
-          alpha,
-          &A,
-          &B,
-          beta,
-          &C,
-          cntx,
           cntl,
-          &fmm_cntl
+          fmm_cntl
         );
-    }
 
-    fmm_params_t paramsA, paramsB, paramsC;
+        func_t *pack_ukr;
 
-    paramsA.m_max = m; paramsA.n_max = k;
-    paramsB.m_max = n; paramsB.n_max = k;
-    paramsC.m_max = n; paramsC.n_max = m;
-    paramsC.local = &C_local;
-
-#if 1
-    func_t *pack_ukr;
-
-    pack_ukr = bli_cntx_get_ukrs( FMM_BLIS_PACK_UKR_SYMM, cntx );
-    bli_gemm_cntl_set_packa_ukr_simple( pack_ukr , cntl );
-    bli_gemm_cntl_set_packb_ukr_simple( bli_cntx_get_ukrs( FMM_BLIS_PACK_UKR_SYMM, cntx ), cntl );
-    bli_gemm_cntl_set_ukr_simple( bli_cntx_get_ukrs( FMM_BLIS_GEMM_UKR, cntx ), cntl );
-
-    bli_gemm_cntl_set_packa_params((const void *) &paramsB, cntl);
-    bli_gemm_cntl_set_packb_params((const void *) &paramsA, cntl);
-    bli_gemm_cntl_set_params((const void *) &paramsC, cntl);
-
-    // handle complex values
-    if ( im == BLIS_1M )
-    {
-        gemm_ukr_ft gemm_ukr      = bli_cntx_get_ukr_dt( dt, BLIS_GEMM_UKR, cntx );
-
-        bli_gemm_var_cntl_set_real_ukr_simple(gemm_ukr, cntl);
-        bli_gemm_var_cntl_set_ukr_simple(
-            bli_cntx_get_ukr_dt(dt, FMM_BLIS_GEMM1M_UKR, cntx), cntl
-        );
-    }
-
-    ////
-    if (0) {
+        pack_ukr = bli_cntx_get_ukrs( FMM_BLIS_PACK_UKR, cntx );
+        bli_gemm_cntl_set_packa_ukr_simple( pack_ukr , cntl );
+        bli_gemm_cntl_set_packb_ukr_simple( bli_cntx_get_ukrs( FMM_BLIS_PACK_UKR, cntx ), cntl );
+        bli_gemm_cntl_set_ukr_simple( bli_cntx_get_ukrs( FMM_BLIS_GEMM_UKR, cntx ), cntl );
 
         fmm_cntl->fmm = &fmm;
+        fmm_cntl->gemm_cntl = cntl;
 
-        // bli_gemm_cntl_set_params((const void *) fmm, &cntl);
-        bli_l3_thread_decorator
-        (
-            &A,
-            &B,
-            &C,
-            cntx,
-            ( cntl_t* )&fmm_gemm_cntl,
-            rntm
-        );
-        return;
-    }
-    ////
-
-    bli_gemm_cntl_set_packa_params((const void *) &paramsB, cntl);
-    bli_gemm_cntl_set_packb_params((const void *) &paramsA, cntl);
-    bli_gemm_cntl_set_params((const void *) &paramsC, cntl);
-#endif
-
-    m_whole = m;
-    n_whole = n;
-    k_whole = k;
-
-    dim_t row_off_A[M_TILDE * K_TILDE], col_off_A[M_TILDE * K_TILDE];
-    dim_t part_m_A[M_TILDE * K_TILDE], part_n_A[M_TILDE * K_TILDE];
-
-    init_part_offsets(row_off_A, col_off_A, part_m_A, part_n_A, m_whole, k_whole, M_TILDE, K_TILDE);
-
-    dim_t row_off_B[K_TILDE * N_TILDE], col_off_B[K_TILDE * N_TILDE];
-    dim_t part_m_B[K_TILDE * N_TILDE], part_n_B[K_TILDE * N_TILDE];
-
-    init_part_offsets(col_off_B, row_off_B, part_n_B, part_m_B, k_whole, n_whole, K_TILDE, N_TILDE); // since B is transposed... something idk.
-
-    dim_t row_off_C[M_TILDE * N_TILDE], col_off_C[M_TILDE * N_TILDE];
-    dim_t part_m_C[M_TILDE * N_TILDE], part_n_C[M_TILDE * N_TILDE];
-
-    init_part_offsets(col_off_C, row_off_C, part_n_C, part_m_C, m_whole, n_whole, M_TILDE, N_TILDE);
-
-    for ( dim_t r = 0; r < fmm.R; r++ )
-    {
-
-        paramsA.nsplit = 0;
-        paramsB.nsplit = 0;
-        paramsC.nsplit = 0;
-
-        for (dim_t isplits = 0; isplits < M_TILDE * K_TILDE; isplits++)
-        {
-            ((float*)paramsA.coef)[paramsA.nsplit] = _U(isplits, r);
-            paramsA.off_m[paramsA.nsplit] = row_off_A[isplits];
-            paramsA.off_n[paramsA.nsplit] = col_off_A[isplits];
-            paramsA.part_m[paramsA.nsplit] = part_m_A[isplits];
-            paramsA.part_n[paramsA.nsplit] = part_n_A[isplits];
-            paramsA.nsplit++;
-        }
-
-        for (dim_t isplits = 0; isplits < K_TILDE * N_TILDE; isplits++)
-        {
-            ((float*)paramsB.coef)[paramsB.nsplit] = _V(isplits, r);
-            paramsB.off_m[paramsB.nsplit] = row_off_B[isplits];
-            paramsB.off_n[paramsB.nsplit] = col_off_B[isplits];
-            paramsB.part_m[paramsB.nsplit] = part_m_B[isplits];
-            paramsB.part_n[paramsB.nsplit] = part_n_B[isplits];
-            paramsB.nsplit++;
-        }
-
-        for (dim_t isplits = 0; isplits < M_TILDE * N_TILDE; isplits++)
-        {
-            ((float*)paramsC.coef)[paramsC.nsplit] = _W(isplits, r);
-            paramsC.off_m[paramsC.nsplit] = row_off_C[isplits];
-            paramsC.off_n[paramsC.nsplit] = col_off_C[isplits];
-            paramsC.part_m[paramsC.nsplit] = part_m_C[isplits];
-            paramsC.part_n[paramsC.nsplit] = part_n_C[isplits];
-            paramsC.nsplit++;
-        }
+        bli_gemm_cntl_set_packa_params((const void *) &fmm, cntl);
+        bli_gemm_cntl_set_packb_params((const void *) &fmm, cntl);
+        bli_gemm_cntl_set_params((const void *) &fmm, cntl);
 
         bli_l3_thread_decorator
         (
@@ -569,15 +278,90 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
             &B_local,
             &C_local,
             cntx,
-            ( cntl_t* )cntl,
+            ( cntl_t* )&fmm_gemm_cntl,
             rntm
         );
-
-        if (0) return; // TODO
+        return;
     }
+
+    // with reordering variant
+
+    fmm_gemm_cntl_alt_t fmm_gemm_cntl;
+    fmm_cntl_t* fmm_cntl = &(fmm_gemm_cntl.fmm_cntl);
+
+    cntl = &fmm_gemm_cntl.gemm_cntl;
+
+    if (variant == 2) {
+        bli_fmm_cntl_init_pushb
+        (
+          im,
+          BLIS_GEMM,
+          alpha,
+          &A_local,
+          &B_local,
+          beta,
+          &C_local,
+          cntx,
+          cntl,
+          fmm_cntl,
+          variant
+        );
+    }
+    else {
+        bli_fmm_gemm_cntl_init_var
+        (
+          im,
+          BLIS_GEMM,
+          alpha,
+          &A_local,
+          &B_local,
+          beta,
+          &C_local,
+          cntx,
+          cntl,
+          fmm_cntl,
+          variant
+        );
+    }
+
+    func_t *pack_ukr;
+
+    pack_ukr = bli_cntx_get_ukrs( FMM_BLIS_PACK_UKR, cntx );
+    bli_gemm_cntl_set_packa_ukr_simple( pack_ukr , cntl );
+    bli_gemm_cntl_set_packb_ukr_simple( bli_cntx_get_ukrs( FMM_BLIS_PACK_UKR, cntx ), cntl );
+    bli_gemm_cntl_set_ukr_simple( bli_cntx_get_ukrs( FMM_BLIS_GEMM_UKR, cntx ), cntl );
+
+    fmm_cntl->fmm = &fmm;
+    fmm_cntl->gemm_cntl = cntl;
+
+    if (variant == 2) {
+        bli_gemm_cntl_set_packa_params((const void *) &fmm_gemm_cntl, cntl);
+        bli_gemm_cntl_set_packb_params((const void *) &fmm_gemm_cntl, cntl);
+        bli_gemm_cntl_set_params((const void *) &fmm_gemm_cntl, cntl);
+    }
+    else {
+        bli_gemm_cntl_set_packa_params((const void *) &fmm, cntl);
+        bli_gemm_cntl_set_packb_params((const void *) &fmm, cntl);
+        bli_gemm_cntl_set_params((const void *) &fmm, cntl);
+    }
+
+    bli_l3_thread_decorator
+    (
+        &A_local,
+        &B_local,
+        &C_local,
+        cntx,
+        ( cntl_t* )&fmm_gemm_cntl,
+        rntm
+    );
 }
 
-void bli_strassen_ab_symm( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C) {
-    bli_strassen_ab_symm_ex(alpha, A, B, beta, C, CLASSICAL_FMM);
-    // bli_strassen_ab_symm_ex(alpha, A, B, beta, C, STRASSEN_FMM);
+void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t fmm ) {
+    bli_strassen_ab_ex_var(alpha, A, B, beta, C, fmm, 2);
+}
+
+void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )
+{
+    bli_strassen_ab_ex( alpha, A, B, beta, C, CLASSICAL_FMM );
+    // bli_strassen_ab_ex( alpha, A, B, beta, C, STRASSEN_FMM );
 }
