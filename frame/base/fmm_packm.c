@@ -260,8 +260,6 @@ void bli_l3_packb_fmm
      )
 {
 
-    printf("bli_l3_packb_fmm\n\n");
-
     // fmm_cntl
 
     thrinfo_t* thread = bli_thrinfo_sub_node( 0, thread_par );
