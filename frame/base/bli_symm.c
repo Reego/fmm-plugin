@@ -288,8 +288,6 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
             ( cntl_t* )cntl,
             rntm
         );
-
-        if (0) return; // TODO
     }
 }
 

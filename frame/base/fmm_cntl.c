@@ -64,7 +64,6 @@ void bl_fmm_acquire_spart
 
     bli_obj_inc_offs( offm_inc, offn_inc, sub_obj );
     bli_obj_inc_diag_offset( diagoff_inc, sub_obj );
-
 }
 
 void bli_fmm_cntl

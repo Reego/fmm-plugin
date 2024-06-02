@@ -157,7 +157,6 @@ void bli_fmm_cntl_init_pushb
 
     if ( im == BLIS_1M )
     {
-        printf("HEYYYYY\n\n\n\n\n");
         if ( ! row_pref )
         {
             schema_a = BLIS_PACKED_ROW_PANELS_1E;
@@ -513,7 +512,6 @@ void bli_fmm_gemm_cntl_init_var
 
     if ( im == BLIS_1M )
     {
-        printf("HEYYYYY\n\n\n\n\n");
         if ( ! row_pref )
         {
             schema_a = BLIS_PACKED_ROW_PANELS_1E;
@@ -1067,7 +1065,6 @@ void bli_fmm_gemm_cntl_init
 
     if ( im == BLIS_1M )
     {
-        printf("HEYYYYY\n\n\n\n\n");
         if ( ! row_pref )
         {
             schema_a = BLIS_PACKED_ROW_PANELS_1E;

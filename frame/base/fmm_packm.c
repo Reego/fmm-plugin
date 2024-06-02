@@ -326,7 +326,6 @@ void bli_l3_packb_fmm
     // end fmm_cntl
 
 
-
     obj_t bt_local;
 
     // We always pass B^T to bli_l3_packm.
@@ -339,117 +338,6 @@ void bli_l3_packb_fmm
     {
         bli_obj_induce_trans( &bt_local );
     }
-
-    // Pack matrix B according to the control tree node.
-    // bli_packm_int
-    // (
-    //   &bt_local,
-    //   &bt_pack,
-    //   cntx,
-    //   cntl,
-    //   thread_par
-    // );
-
-
-    // siz_t size_p = bli_packm_init( c, p, cntl );
-    // if ( size_p == 0 )
-    //     return;
-
-    // // Update the buffer address in p to point to the buffer associated
-    // // with the mem_t entry acquired from the memory broker (now cached in
-    // // the control tree node).
-    // void* buffer = bli_packm_alloc( size_p, cntl, thread );
-    // bli_obj_set_buffer( buffer, p );
-
-
-
-    // obj_t* _bt_pack = malloc(fmm->R * sizeof(obj_t));
-    // siz_t _mult = (fmm->R + fmm->n_tilde * fmm->k_tilde - 1) / (fmm->n_tilde * fmm->k_tilde);
-
-    // siz_t _size_p = bli_packm_init( &bt_local, _bt_pack, cntl ) * _mult;
-
-    // for (int r = 1; r < fmm->R; r++) {
-    //     bli_packm_init(&bt_local, &_bt_pack[r], cntl);
-    // }
-
-    // void* _buffer = bli_packm_alloc(_size_p, cntl, thread);
-
-    // siz_t _offset = _size_p / fmm->R;
-
-    // // thrinfo_t* thread = bli_thrinfo_sub_node( 0, thread_par );
-    // bli_thrinfo_barrier( thread );
-
-    // for (int r = 0; r < fmm->R; r++) {
-
-    //     // void* offset_buffer = _buffer + _offset * r;
-    //     void* offset_buffer = (char*)_buffer + _offset * r;
-    //     bli_obj_set_buffer( offset_buffer, &_bt_pack[r] );
-
-    //     paramsA.nsplit = 0;
-    //     paramsB.nsplit = 0;
-    //     paramsC.nsplit = 0;
-
-    //     for (dim_t isplits = 0; isplits < fmm->m_tilde * fmm->k_tilde; isplits++)
-    //     {
-    //         ((float*)paramsA.coef)[paramsA.nsplit] = __U(isplits, r);
-    //         paramsA.off_m[paramsA.nsplit] = row_off_A[isplits];
-    //         paramsA.off_n[paramsA.nsplit] = col_off_A[isplits];
-    //         paramsA.part_m[paramsA.nsplit] = part_m_A[isplits];
-    //         paramsA.part_n[paramsA.nsplit] = part_n_A[isplits];
-    //         paramsA.nsplit++;
-    //     }
-
-    //     for (dim_t isplits = 0; isplits < fmm->k_tilde * fmm->n_tilde; isplits++)
-    //     {
-    //         ((float*)paramsB.coef)[paramsB.nsplit] = __V(isplits, r);
-    //         paramsB.off_m[paramsB.nsplit] = row_off_B[isplits];
-    //         paramsB.off_n[paramsB.nsplit] = col_off_B[isplits];
-    //         paramsB.part_m[paramsB.nsplit] = part_m_B[isplits];
-    //         paramsB.part_n[paramsB.nsplit] = part_n_B[isplits];
-    //         paramsB.nsplit++;
-    //     }
-
-    //     for (dim_t isplits = 0; isplits < fmm->m_tilde * fmm->n_tilde; isplits++)
-    //     {
-    //         ((float*)paramsC.coef)[paramsC.nsplit] = __W(isplits, r);
-    //         paramsC.off_m[paramsC.nsplit] = row_off_C[isplits];
-    //         paramsC.off_n[paramsC.nsplit] = col_off_C[isplits];
-    //         paramsC.part_m[paramsC.nsplit] = part_m_C[isplits];
-    //         paramsC.part_n[paramsC.nsplit] = part_n_C[isplits];
-    //         paramsC.nsplit++;
-    //     }
-
-    //     bli_packm_blk_var1_fmm
-    //     (
-    //       &bt_local,
-    //       &_bt_pack[r],
-    //       cntx,
-    //       cntl,
-    //       thread
-    //     );
-
-    //     // Barrier so that packing is done before computation.
-    //     bli_thrinfo_barrier( thread );
-
-    //     bli_l3_int
-    //     (
-    //       &a_local,
-    //       &_bt_pack[r],
-    //       &c_local,
-    //       cntx,
-    //       bli_cntl_sub_node( 0, cntl ),
-    //       thread
-    //     );
-    // }
-    // bli_packm_def_cntl_set_ukr_params((const void *) params, cntl);
-
-    // if (1) return;
-
-
-
-    /////////
-
-
 
     // prepare packing buffer
     obj_t* bt_pack = malloc(fmm->R * sizeof(obj_t));
@@ -471,12 +359,8 @@ void bli_l3_packb_fmm
     // pack
     for (int r = 0; r < fmm->R; r++) {
 
-        // printf("%ld\n\n", r);
-
         void* offset_buffer = ((char*) buffer) + offset * r;
         bli_obj_set_buffer( offset_buffer, &bt_pack[r] );
-
-        // printf("buffer offset total %ld\t\toffset %ld\tsize_p %ld \t m %ld k %ld size %ld\n\n", offset * r, offset, size_p, m, k, bli_obj_elem_size(&bt_local));
 
         if (r == 0) bli_init_once();
 
@@ -537,7 +421,6 @@ void bli_l3_packb_fmm
             paramsC.part_n[paramsC.nsplit] = part_n_C[isplits];
             paramsC.nsplit++;
         }
-        // printf("\t\t6. bli_l3_packb_fmm -> bli_l3_int\n\n");
 
         bli_l3_int
         (
