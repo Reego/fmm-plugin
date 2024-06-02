@@ -178,7 +178,7 @@ int test_bli_strassen_ex( int m, int n, int k, int debug )
         }
     }
 
-    if (DEBUG_test) {
+    if (DEBUG_test || 1) {
         bli_printm( "matrix 'a', initialized by columns:", &A, "%5.3f", "" );
         bli_printm( "matrix 'b', initialized by columns:", &B, "%5.3f", "" );
         bli_printm( "matrix 'c', initialized by columns:", &C, "%5.3f", "" );
@@ -269,7 +269,7 @@ int test_bli_strassen_ex( int m, int n, int k, int debug )
     // Compute overall floating point operations.
     flops = ( m * n / ( 1000.0 * 1000.0 * 1000.0 ) ) * ( 2 * k );
 
-    if (!debug)
+    if (debug)
         printf( "%5d\t %5d\t %5d\t %5.2lf\t %5.2lf\t %5.2g\t %5.2g\n",
                 m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid, resid_other );
     else {
@@ -489,7 +489,7 @@ int test_bli_symm_strassen_ex( int m, int n, int k, int debug )
     // Compute overall floating point operations.
     flops = ( m * n / ( 1000.0 * 1000.0 * 1000.0 ) ) * ( 2 * k );
 
-    if (!debug)
+    if (debug)
         printf( "%5d\t %5d\t %5d\t %5.2lf\t %5.2lf\t resid %5.2g\t other %5.2g\n",
                 m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid, resid_other );
         if (resid > .0000001) {
@@ -703,6 +703,8 @@ int other()
 int main( int argc, char *argv[] )
 {
 
+    printf("main.\n\n");
+
     if (0) {
         other();
         return 0;
@@ -736,9 +738,11 @@ int main( int argc, char *argv[] )
     #else
 
     int m, n, k;
-    m = 2; n = 2; k = 6;
+    // m = n = k = 100;
+    m = k = 3000;
+    n = 2;
 
-    test_bli_symm_strassen_ex( m, n, k, 0);
+    test_bli_strassen_ex( m, n, k, 1);
 
     // test_bli_strassen_ex( m, n, k, 1);
     #endif

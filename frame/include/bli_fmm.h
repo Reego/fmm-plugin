@@ -59,6 +59,7 @@ extern "C" {
 #define C( i, j )     C[ (j)*ldc + (i) ]
 
 extern fmm_t STRASSEN_FMM;
+extern fmm_t CLASSICAL_FMM;
 
 #define DGEMM_MC 96
 #define DGEMM_NC 4096 // 2052 //
@@ -70,6 +71,7 @@ struct fmm_cntl_s
 {
     cntl_t cntl; // cntl field must be present and come first.
     fmm_t* fmm;
+    gemm_cntl_t* gemm_cntl; // to faciliate locating
 };
 typedef struct fmm_cntl_s fmm_cntl_t;
 
@@ -86,7 +88,37 @@ struct fmm_gemm_cntl_alt_s
     gemm_cntl_t gemm_cntl;
     fmm_cntl_t fmm_cntl;
 };
-typedef struct fmm_gemm_cntl_s fmm_gemm_cntl_alt_t;
+typedef struct fmm_gemm_cntl_alt_s fmm_gemm_cntl_alt_t;
+
+void bli_fmm_gemm_cntl_init_pushb
+     (
+             ind_t        im,
+             opid_t       family,
+       const obj_t*       alpha,
+             obj_t*       a,
+             obj_t*       b,
+       const obj_t*       beta,
+             obj_t*       c,
+       const cntx_t*      cntx,
+             gemm_cntl_t* cntl,
+             fmm_cntl_t* fmm_cntl,
+             int variant
+     );
+
+void bli_fmm_gemm_cntl_init_var
+     (
+             ind_t        im,
+             opid_t       family,
+       const obj_t*       alpha,
+             obj_t*       a,
+             obj_t*       b,
+       const obj_t*       beta,
+             obj_t*       c,
+       const cntx_t*      cntx,
+             gemm_cntl_t* cntl,
+             fmm_cntl_t* fmm_cntl,
+             int variant
+     );
 
 void bli_fmm_gemm_cntl_init
      (
@@ -100,6 +132,16 @@ void bli_fmm_gemm_cntl_init
        const cntx_t*      cntx,
              gemm_cntl_t* cntl,
              fmm_cntl_t* fmm_cntl
+     );
+
+void bli_l3_packb_fmm
+     (
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  c,
+       const cntx_t* cntx,
+       const cntl_t* cntl,
+             thrinfo_t* thread_par
      );
 
 void do_fmm_test();
