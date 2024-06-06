@@ -140,8 +140,8 @@ void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C
     rntm_t* rntm = NULL;
     
     // Check the operands.
-    // if ( bli_error_checking_is_enabled() )
-    //  bli_gemm_check( alpha, A, B, beta, C, cntx );
+    if ( bli_error_checking_is_enabled() )
+     bli_gemm_check( alpha, A, B, beta, C, cntx );
 
     // Check for zero dimensions, alpha == 0, or other conditions which
     // mean that we don't actually have to perform a full l3 operation.
@@ -188,15 +188,10 @@ void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C
     bl_acquire_spart (k_splits, n_splits, 0, 0, B, &B0 );
     bl_acquire_spart (m_splits, n_splits, 0, 0, C, &C0 );
 
-#if 1
     bli_obj_alias_submatrix( &A0, &A_local );
     bli_obj_alias_submatrix( &B0, &B_local );
     bli_obj_alias_submatrix( &C0, &C_local );
-#else
-    bli_obj_alias_submatrix( A, &A_local );
-    bli_obj_alias_submatrix( B, &B_local );
-    bli_obj_alias_submatrix( C, &C_local );
-#endif
+
     gemm_cntl_t cntl;
     bli_gemm_cntl_init
     (
