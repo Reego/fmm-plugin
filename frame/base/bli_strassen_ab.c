@@ -181,7 +181,7 @@ void init_part_offsets(dim_t* row_off, dim_t* col_off, dim_t* part_m, dim_t* par
     }
 }
 
-void bli_strassen_ab_ex_var( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t fmm, int variant) {
+void bli_strassen_ab_ex_var( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t* fmm, int variant) {
 
     static int registered = false;
 
@@ -259,12 +259,12 @@ void bli_strassen_ab_ex_var( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_
         bli_gemm_cntl_set_packb_ukr_simple( bli_cntx_get_ukrs( FMM_BLIS_PACK_UKR, cntx ), cntl );
         bli_gemm_cntl_set_ukr_simple( bli_cntx_get_ukrs( FMM_BLIS_GEMM_UKR, cntx ), cntl );
 
-        fmm_cntl->fmm = &fmm;
+        fmm_cntl->fmm = fmm;
         fmm_cntl->gemm_cntl = cntl;
 
-        bli_gemm_cntl_set_packa_params((const void *) &fmm, cntl);
-        bli_gemm_cntl_set_packb_params((const void *) &fmm, cntl);
-        bli_gemm_cntl_set_params((const void *) &fmm, cntl);
+        bli_gemm_cntl_set_packa_params((const void *) fmm, cntl);
+        bli_gemm_cntl_set_packb_params((const void *) fmm, cntl);
+        bli_gemm_cntl_set_params((const void *) fmm, cntl);
 
         bli_l3_thread_decorator
         (
@@ -325,7 +325,7 @@ void bli_strassen_ab_ex_var( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_
     bli_gemm_cntl_set_packb_ukr_simple( bli_cntx_get_ukrs( FMM_BLIS_PACK_UKR, cntx ), cntl );
     bli_gemm_cntl_set_ukr_simple( bli_cntx_get_ukrs( FMM_BLIS_GEMM_UKR, cntx ), cntl );
 
-    fmm_cntl->fmm = &fmm;
+    fmm_cntl->fmm = fmm;
     fmm_cntl->gemm_cntl = cntl;
 
     if (variant == 2) {
@@ -334,9 +334,9 @@ void bli_strassen_ab_ex_var( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_
         bli_gemm_cntl_set_params((const void *) &fmm_gemm_cntl, cntl);
     }
     else {
-        bli_gemm_cntl_set_packa_params((const void *) &fmm, cntl);
-        bli_gemm_cntl_set_packb_params((const void *) &fmm, cntl);
-        bli_gemm_cntl_set_params((const void *) &fmm, cntl);
+        bli_gemm_cntl_set_packa_params((const void *) fmm, cntl);
+        bli_gemm_cntl_set_packb_params((const void *) fmm, cntl);
+        bli_gemm_cntl_set_params((const void *) fmm, cntl);
     }
 
     bli_l3_thread_decorator
@@ -350,8 +350,8 @@ void bli_strassen_ab_ex_var( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_
     );
 }
 
-void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t fmm ) {
-    bli_strassen_ab_ex_var(alpha, A, B, beta, C, fmm, 2);
+void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t* fmm ) {
+    bli_strassen_ab_ex_var(alpha, A, B, beta, C, fmm, 0);
 }
 
 void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )

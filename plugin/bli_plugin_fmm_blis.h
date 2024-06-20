@@ -54,7 +54,7 @@ extern siz_t FMM_BLIS_GEMM1M_UKR;
 // Parameter structures for kernels
 //
 
-#define FMM_BLIS_MULTS 7
+#define FMM_BLIS_MULTS 64
 #define MAX_NUM_PARTS 16
 
 typedef struct fmm_s {
