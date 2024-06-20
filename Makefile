@@ -49,6 +49,7 @@ FRAME_CC_SRC= 	frame/util/bli_fmm_util.c \
 # 				plugin/ref_kernels/bli_gemm_fmm_ref.c
 
 TEST_SRC = test/test_strassen_oapi.c
+RUN_TESTS_SRC = test/run_tests.c
 
 OTHER_DEP = 	frame/include/bli_fmm.h 
 
@@ -56,7 +57,9 @@ CFLAGS += $(INC_DIR) -I$(BLIS_INCDIR)
                              
 FMM_LIB_OBJ=$(FRAME_CC_SRC:.c=.o)
 TEST_OBJ=$(TEST_SRC:.c=.o) 
+RUN_TESTS_OBJ=$(RUN_TESTS_SRC:.c=.o) 
 TEST_EXE= test_strassen.x
+RUN_TESTS_EXE= run_tests.x
 
 all: $(FMM_LIB) test
 
@@ -64,8 +67,13 @@ lib:  $(FMM_LIB)
 
 test: $(TEST_EXE)
 
+run_tests: $(RUN_TESTS_EXE)
+
 $(TEST_EXE): $(TEST_OBJ) $(FMM_LIB)
 	$(CC) $(CFLAGS) $(TEST_OBJ) -o $(TEST_EXE) $(LDFLAGS) $(LIBBLIS) $(PLUGIN_LIB) $(FMM_LIB)
+
+$(RUN_TESTS_EXE): $(RUN_TESTS_OBJ) $(FMM_LIB)
+	$(CC) $(CFLAGS) $(RUN_TESTS_OBJ) -o $(RUN_TESTS_EXE) $(LDFLAGS) $(LIBBLIS) $(PLUGIN_LIB) $(FMM_LIB)
 
 $(FMM_LIB): $(FMM_LIB_OBJ)
 	-mkdir -p lib

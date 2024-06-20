@@ -325,13 +325,7 @@ void PASTEMAC3(ch,opname,arch,suf) \
     dim_t* restrict part_m = params->part_m;\
     dim_t* restrict part_n = params->part_n; \
     num_t   dt            = PASTEMAC(ch,type); \
-    if (0) printf("c is %ld\n", c);\
-    if (1) printf("nsplit %d %p\n", params->nsplit, params);\
-    if (0) printf("%d %d\n", dt, bli_is_1m_packed(schema));\
 \
-    if (ldp == 4 && 0 && coef[0] != 0) {\
-        printf("====================\n");\
-    }\
     dim_t nsplit = params->nsplit; \
     for (int s = 0; s < nsplit; s++) \
     { \

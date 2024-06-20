@@ -356,5 +356,5 @@ void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C
 
 void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )
 {
-    bli_strassen_ab_ex( alpha, A, B, beta, C, STRASSEN_FMM );
+    bli_strassen_ab_ex( alpha, A, B, beta, C, &STRASSEN_FMM );
 }

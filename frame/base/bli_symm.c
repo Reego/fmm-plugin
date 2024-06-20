@@ -37,7 +37,7 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
     
     // Check the operands.
     if ( bli_error_checking_is_enabled() )
-        bli_gemm_check( alpha, A, B, beta, C, cntx );
+        bli_symm_check( BLIS_LEFT, alpha, A, B, beta, C, cntx );
 
     // Check for zero dimensions, alpha == 0, or other conditions which
     // mean that we don't actually have to perform a full l3 operation.
@@ -213,5 +213,5 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
 }
 
 void bli_strassen_ab_symm( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C) {
-    bli_strassen_ab_symm_ex(alpha, A, B, beta, C, STRASSEN_FMM);
+    bli_strassen_ab_symm_ex(alpha, A, B, beta, C, &STRASSEN_FMM);
 }
