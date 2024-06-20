@@ -10,7 +10,7 @@
 #define K_CONST X
 
 #define DEBUG_test 0
-#define RUN_trials 0
+#define RUN_trials 1
 #define SQUARE 0
 
 #define _U( i,j ) fmm.U[ (i)*fmm.R + (j) ]
@@ -99,9 +99,10 @@ double my_max_diff_d(obj_t* A, obj_t* B, dim_t m, dim_t n) {
     return max_diff;
 }
 
-int test_bli_strassen_ex( int m, int n, int k, int debug )
+int test_bli_strassen_ex_ex( int m, int n, int k, int debug, fmm_t* fmm )
 {   
-    fmm_t fmm = new_fmm("classical.txt");
+    // fmm_t fmm = new_fmm("222.txt");
+    // fmm_t fmm = new_fmm_ex("222.txt", 2);
 
     obj_t* null = 0;
 
@@ -149,7 +150,7 @@ int test_bli_strassen_ex( int m, int n, int k, int debug )
 	beta  = &BLIS_ONE;
 
 
-#if 1
+#if 0
     bli_randm( &B );
     bli_randm( &A );
     bli_randm( &C );
@@ -178,7 +179,7 @@ int test_bli_strassen_ex( int m, int n, int k, int debug )
         }
     }
 
-    if (DEBUG_test || 1) {
+    if (DEBUG_test) {
         bli_printm( "matrix 'a', initialized by columns:", &A, "%5.3f", "" );
         bli_printm( "matrix 'b', initialized by columns:", &B, "%5.3f", "" );
         bli_printm( "matrix 'c', initialized by columns:", &C, "%5.3f", "" );
@@ -295,9 +296,14 @@ int test_bli_strassen_ex( int m, int n, int k, int debug )
     bli_obj_free( &C_ref );
     bli_obj_free( &diffM );
 
-    free_fmm(fmm);
-
     return failed;
+}
+
+int test_bli_strassen_ex(int m, int n, int k, int debug) {
+    fmm_t fmm = new_fmm_ex("222.txt", 2);
+    int res = test_bli_strassen_ex_ex(m, n, k, debug, &fmm);
+    free_fmm(&fmm);
+    return res;
 }
 
 int test_bli_symm_strassen_ex( int m, int n, int k, int debug )
@@ -518,8 +524,6 @@ int test_bli_symm_strassen_ex( int m, int n, int k, int debug )
     bli_obj_free( &C_ref );
     bli_obj_free( &diffM );
 
-    free_fmm(fmm);
-
     return failed;
 }
 
@@ -706,7 +710,10 @@ int main( int argc, char *argv[] )
     printf("main.\n\n");
 
     if (0) {
-        other();
+        
+        fmm_t fmm = new_fmm_ex("strassen.txt", 2);
+        print_fmm(&fmm);
+    
         return 0;
     }
 
@@ -724,9 +731,9 @@ int main( int argc, char *argv[] )
                     if (m + n + k <= LIMIT) {
                         #if SQUARE
                         if (m == n && n == k)
-                            failed += test_bli_symm_strassen_ex(m, n, k, 0);
+                            failed += test_bli_strassen_ex(m, n, k, 0);
                         #else
-                            failed += test_bli_symm_strassen_ex(m, n, k, 0);
+                            failed += test_bli_strassen_ex(m, n, k, 0);
                         #endif
                     }
                 }
@@ -739,10 +746,17 @@ int main( int argc, char *argv[] )
 
     int m, n, k;
     // m = n = k = 100;
-    m = k = 3000;
-    n = 2;
+    m = k = 16;
+    n = 16;
 
-    test_bli_strassen_ex( m, n, k, 1);
+    fmm_t fmm = new_fmm_ex("strassen.txt", 2);
+    print_fmm(&fmm);
+
+    printf("\n\n\n");
+
+    test_bli_strassen_ex_ex( m, n, k, 1, &fmm);
+
+    free_fmm(&fmm);
 
     // test_bli_strassen_ex( m, n, k, 1);
     #endif

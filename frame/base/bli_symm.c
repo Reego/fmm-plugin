@@ -16,7 +16,7 @@ static packm_ker_ft GENARRAY(packm_struc_cxk,packm_struc_cxk);
 static packm_ker_ft GENARRAY2_ALL(packm_struc_cxk_md,packm_struc_cxk_md);
 
 
-void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t fmm) {
+void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t* fmm) {
 
     static int registered = false;
 
@@ -80,9 +80,9 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
     dim_t m_edge, m_whole, k_edge, k_whole, n_edge, n_whole;
     dim_t m_splits, k_splits, n_splits;
 
-    const int M_TILDE = fmm.m_tilde;
-    const int N_TILDE = fmm.n_tilde;
-    const int K_TILDE = fmm.k_tilde;
+    const int M_TILDE = fmm->m_tilde;
+    const int N_TILDE = fmm->n_tilde;
+    const int K_TILDE = fmm->k_tilde;
 
     m_splits = M_TILDE, k_splits = K_TILDE, n_splits = N_TILDE;
 
@@ -196,11 +196,11 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
 
         // printf("Wait, really? %p %p\n\n", fmm_cntl, &(fmm_cntl->fmm));
 
-        fmm_cntl->fmm = &fmm;
+        fmm_cntl->fmm = fmm;
 
-        bli_gemm_cntl_set_packa_params((const void *) &fmm, cntl);
-        bli_gemm_cntl_set_packb_params((const void *) &fmm, cntl);
-        bli_gemm_cntl_set_params((const void *) &fmm, cntl);
+        bli_gemm_cntl_set_packa_params((const void *) fmm, cntl);
+        bli_gemm_cntl_set_packb_params((const void *) fmm, cntl);
+        bli_gemm_cntl_set_params((const void *) fmm, cntl);
 
         // printf("About to call bli_l3_thread_decorator\n\n");
 
@@ -242,7 +242,7 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
 
     init_part_offsets(col_off_C, row_off_C, part_n_C, part_m_C, m_whole, n_whole, M_TILDE, N_TILDE);
 
-    for ( dim_t r = 0; r < fmm.R; r++ )
+    for ( dim_t r = 0; r < fmm->R; r++ )
     {
 
         paramsA.nsplit = 0;
@@ -251,7 +251,7 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
 
         for (dim_t isplits = 0; isplits < M_TILDE * K_TILDE; isplits++)
         {
-            ((float*)paramsA.coef)[paramsA.nsplit] = _U(isplits, r);
+            ((float*)paramsA.coef)[paramsA.nsplit] = __U(isplits, r);
             paramsA.off_m[paramsA.nsplit] = row_off_A[isplits];
             paramsA.off_n[paramsA.nsplit] = col_off_A[isplits];
             paramsA.part_m[paramsA.nsplit] = part_m_A[isplits];
@@ -261,7 +261,7 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
 
         for (dim_t isplits = 0; isplits < K_TILDE * N_TILDE; isplits++)
         {
-            ((float*)paramsB.coef)[paramsB.nsplit] = _V(isplits, r);
+            ((float*)paramsB.coef)[paramsB.nsplit] = __V(isplits, r);
             paramsB.off_m[paramsB.nsplit] = row_off_B[isplits];
             paramsB.off_n[paramsB.nsplit] = col_off_B[isplits];
             paramsB.part_m[paramsB.nsplit] = part_m_B[isplits];
@@ -271,7 +271,7 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
 
         for (dim_t isplits = 0; isplits < M_TILDE * N_TILDE; isplits++)
         {
-            ((float*)paramsC.coef)[paramsC.nsplit] = _W(isplits, r);
+            ((float*)paramsC.coef)[paramsC.nsplit] = __W(isplits, r);
             paramsC.off_m[paramsC.nsplit] = row_off_C[isplits];
             paramsC.off_n[paramsC.nsplit] = col_off_C[isplits];
             paramsC.part_m[paramsC.nsplit] = part_m_C[isplits];
@@ -292,6 +292,6 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
 }
 
 void bli_strassen_ab_symm( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C) {
-    bli_strassen_ab_symm_ex(alpha, A, B, beta, C, CLASSICAL_FMM);
+    bli_strassen_ab_symm_ex(alpha, A, B, beta, C, &CLASSICAL_FMM);
     // bli_strassen_ab_symm_ex(alpha, A, B, beta, C, STRASSEN_FMM);
 }
