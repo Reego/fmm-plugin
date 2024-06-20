@@ -110,15 +110,9 @@ void bl_acquire_spart
     m = bli_obj_length( obj ); 
     n = bli_obj_width( obj ); 
 
-    row_part = m / row_splits;
-    col_part = n / col_splits;
-
     row_left = m % row_splits;
     col_left = n % col_splits;
 
-    /* AT the moment not dealing with edge cases. bli_strassen_ab checks for 
-    edge cases. But does not do anything with it. 
-    */
     if ( 0 && row_left != 0 || col_left != 0 && 0) {
         bli_abort();
     }
@@ -207,8 +201,8 @@ void bli_strassen_ab_ex_var( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_
     rntm_t* rntm = NULL;
     
     // Check the operands.
-    // if ( bli_error_checking_is_enabled() )
-    //  bli_gemm_check( alpha, A, B, beta, C, cntx );
+    if ( bli_error_checking_is_enabled() )
+        bli_gemm_check( alpha, A, B, beta, C, cntx );
 
     // Check for zero dimensions, alpha == 0, or other conditions which
     // mean that we don't actually have to perform a full l3 operation.
@@ -362,6 +356,5 @@ void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C
 
 void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )
 {
-    bli_strassen_ab_ex( alpha, A, B, beta, C, CLASSICAL_FMM );
-    // bli_strassen_ab_ex( alpha, A, B, beta, C, STRASSEN_FMM );
+    bli_strassen_ab_ex( alpha, A, B, beta, C, STRASSEN_FMM );
 }
