@@ -18,6 +18,13 @@ static packm_ker_ft GENARRAY2_ALL(packm_struc_cxk_md,packm_struc_cxk_md);
 
 void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t* fmm) {
 
+
+    {
+        printf("the fmm symm algorithm is currently broken.");
+        bli_abort();
+    }
+
+
     static int registered = false;
 
     bli_init_once();
@@ -36,8 +43,8 @@ void bli_strassen_ab_symm_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj
     rntm_t* rntm = NULL;
     
     // Check the operands.
-    if ( bli_error_checking_is_enabled() )
-        bli_symm_check( BLIS_LEFT, alpha, A, B, beta, C, cntx );
+    // if ( bli_error_checking_is_enabled() )
+    //     bli_symm_check( BLIS_LEFT, alpha, A, B, beta, C, cntx );
 
     // Check for zero dimensions, alpha == 0, or other conditions which
     // mean that we don't actually have to perform a full l3 operation.
