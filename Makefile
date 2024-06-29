@@ -50,6 +50,7 @@ FRAME_CC_SRC= 	frame/util/bli_fmm_util.c \
 
 TEST_SRC = test/test_strassen_oapi.c
 RUN_TESTS_SRC = test/run_tests.c
+DRIVER_SRC = test/driver.c
 
 OTHER_DEP = 	frame/include/bli_fmm.h 
 
@@ -57,9 +58,12 @@ CFLAGS += $(INC_DIR) -I$(BLIS_INCDIR)
                              
 FMM_LIB_OBJ=$(FRAME_CC_SRC:.c=.o)
 TEST_OBJ=$(TEST_SRC:.c=.o) 
-RUN_TESTS_OBJ=$(RUN_TESTS_SRC:.c=.o) 
+RUN_TESTS_OBJ=$(RUN_TESTS_SRC:.c=.o)
+DRIVER_OBJ=$(DRIVER_SRC:.c=.o)
+
 TEST_EXE= test_strassen.x
 RUN_TESTS_EXE= run_tests.x
+DRIVER_EXE= driver.x
 
 all: $(FMM_LIB) test
 
@@ -69,11 +73,16 @@ test: $(TEST_EXE)
 
 run_tests: $(RUN_TESTS_EXE)
 
+driver: $(DRIVER_EXE)
+
 $(TEST_EXE): $(TEST_OBJ) $(FMM_LIB)
 	$(CC) $(CFLAGS) $(TEST_OBJ) -o $(TEST_EXE) $(LDFLAGS) $(LIBBLIS) $(PLUGIN_LIB) $(FMM_LIB)
 
 $(RUN_TESTS_EXE): $(RUN_TESTS_OBJ) $(FMM_LIB)
 	$(CC) $(CFLAGS) $(RUN_TESTS_OBJ) -o $(RUN_TESTS_EXE) $(LDFLAGS) $(LIBBLIS) $(PLUGIN_LIB) $(FMM_LIB)
+
+$(DRIVER_EXE): $(DRIVER_OBJ) $(FMM_LIB)
+	$(CC) $(CFLAGS) $(DRIVER_OBJ) -o $(DRIVER_EXE) $(LDFLAGS) $(LIBBLIS) $(PLUGIN_LIB) $(FMM_LIB)
 
 $(FMM_LIB): $(FMM_LIB_OBJ)
 	-mkdir -p lib

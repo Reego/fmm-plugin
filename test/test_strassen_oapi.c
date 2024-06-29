@@ -9,8 +9,8 @@
 #define M_CONST X
 #define K_CONST X
 
-#define DEBUG_test 0
-#define RUN_trials 1
+#define DEBUG_test 1
+#define RUN_trials 0
 #define SQUARE 0
 
 #define _U( i,j ) fmm.U[ (i)*fmm.R + (j) ]
@@ -334,7 +334,8 @@ int test_bli_symm_strassen_ex( int m, int n, int k, int debug )
     double ref_rectime, bl_dgemm_rectime;
     double diff;
 
-    dt = BLIS_DCOMPLEX;
+    // dt = BLIS_DCOMPLEX;
+    dt = BLIS_DOUBLE;
 
     // rsC = 1; csC = m;
     // rsA = 1; csA = m;
@@ -386,6 +387,9 @@ int test_bli_symm_strassen_ex( int m, int n, int k, int debug )
     bli_setd( &BLIS_MINUS_ONE, &B );
     bli_setm( &BLIS_ZERO, &C );
     bli_copym( &C, &C_ref );
+
+    bli_obj_set_struc( BLIS_SYMMETRIC, &A );
+    bli_obj_set_uplo( BLIS_UPPER, &A );
 
     void*  buf_A    = bli_obj_buffer_at_off( &A ); 
     inc_t  rs_A     = bli_obj_row_stride( &A ); 
@@ -453,12 +457,11 @@ int test_bli_symm_strassen_ex( int m, int n, int k, int debug )
             bl_dgemm_rectime = bl_dgemm_time < bl_dgemm_rectime ? bl_dgemm_time : bl_dgemm_rectime;
         }
     }
-
     for ( i = 0; i < nrepeats; i ++ ) {
         ref_beg = bl_clock();
         {
             // bli_gemm( alpha, &A, &B, beta, &C_ref);
-            bli_symm(side, alpha, &A, &B, beta, &C_ref);
+            bli_symm(BLIS_LEFT, alpha, &A, &B, beta, &C_ref);
             // my_mm(&A, &B, &C_ref, m, n, k);
         }
         ref_time = bl_clock() - ref_beg;
@@ -722,6 +725,10 @@ int main( int argc, char *argv[] )
     int START = 400;
     int END = 404;
 
+    // int LIMIT = 30;
+    // int START = 1;
+    // int END = 10;
+
     int failed = 0;
 
     // for (int l = 0; l < LIMIT; l++) {
@@ -731,9 +738,9 @@ int main( int argc, char *argv[] )
                     if (m + n + k <= LIMIT) {
                         #if SQUARE
                         if (m == n && n == k)
-                            failed += test_bli_strassen_ex(m, n, k, 0);
+                            failed += test_bli_symm_strassen_ex(m, n, k, 1);
                         #else
-                            failed += test_bli_strassen_ex(m, n, k, 0);
+                            failed += test_bli_symm_strassen_ex(m, n, k, 1);
                         #endif
                     }
                 }
@@ -746,17 +753,19 @@ int main( int argc, char *argv[] )
 
     int m, n, k;
     // m = n = k = 100;
-    m = k = 16;
-    n = 16;
+    // m = k = 16;
+    // n = 16;
 
-    fmm_t fmm = new_fmm_ex("strassen.txt", 2);
-    print_fmm(&fmm);
+    m = 1; n = 3; k = 1;
+
+    // fmm_t fmm = new_fmm_ex("strassen.txt", 2);
+    // print_fmm(&fmm);
 
     printf("\n\n\n");
 
-    test_bli_strassen_ex_ex( m, n, k, 1, &fmm);
+    test_bli_symm_strassen_ex( m, n, k, 1);
 
-    free_fmm(&fmm);
+    // free_fmm(&fmm);
 
     // test_bli_strassen_ex( m, n, k, 1);
     #endif

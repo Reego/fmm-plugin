@@ -350,6 +350,11 @@ void bli_strassen_ab_ex_var( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_
     );
 }
 
+void bli_strassen_ab_ex_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t* fmm, int variant) {
+    bli_strassen_ab_ex_var(alpha, A, B, beta, C, fmm, variant);
+}
+
+
 void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t* fmm ) {
     bli_strassen_ab_ex_var(alpha, A, B, beta, C, fmm, 0);
 }
