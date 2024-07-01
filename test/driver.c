@@ -15,8 +15,36 @@ enum DriverFlag {
     FMM_FLAG
 };
 
-void run(dim_t m, dim_t n, dim_t k, int nreps, int variant, fmm_t* fmm)
+void my_mm(obj_t* A, obj_t* B, obj_t* C, dim_t m, dim_t n, dim_t k) {
+
+    void*  buf_A    = bli_obj_buffer_at_off( A ); 
+    inc_t  rs_A     = bli_obj_row_stride( A ); 
+    inc_t  cs_A     = bli_obj_col_stride( A ); 
+    double *buf_Aptr = buf_A;
+
+    void*  buf_B    = bli_obj_buffer_at_off( B ); 
+    inc_t  rs_B     = bli_obj_row_stride( B ); 
+    inc_t  cs_B    = bli_obj_col_stride( B ); 
+    double *buf_Bptr = buf_B;
+
+    void*  buf_C    = bli_obj_buffer_at_off( C ); 
+    inc_t  rs_C     = bli_obj_row_stride( C ); 
+    inc_t  cs_C    = bli_obj_col_stride( C ); 
+    double *buf_Cptr = buf_C;
+
+    for (dim_t i = 0; i < m; i++) {
+        for (dim_t j = 0; j < n; j++) {
+            for(dim_t p = 0; p < k; p++) {
+                buf_Cptr[i*rs_C + j * cs_C] += buf_Aptr[i*rs_A + p*cs_A] * buf_Bptr[p*rs_B + j*cs_B];
+            }
+        }
+    }
+}
+
+void run(dim_t m, dim_t n, dim_t k, int variant, fmm_t* fmm_, int nreps)
 {
+    fmm_t fmm_o = new_fmm("classical.txt");
+    fmm_t* fmm = &fmm_o;
     obj_t* null = 0;
 
     int failed = 0;
@@ -63,6 +91,7 @@ void run(dim_t m, dim_t n, dim_t k, int nreps, int variant, fmm_t* fmm)
     bli_copym( &C, &C_ref );
 
     for ( i = 0; i < nreps; i ++ ) {
+        bli_copym( &C_ref, &C );
         bl_dgemm_beg = bl_clock();
         {
             bli_strassen_ab_ex_ex( alpha, &A, &B, beta, &C, fmm, variant);
@@ -81,12 +110,13 @@ void run(dim_t m, dim_t n, dim_t k, int nreps, int variant, fmm_t* fmm)
     {
         ref_beg = bl_clock();
         {
-            bli_gemm( alpha, &A, &B, beta, &C_ref);
+            // bli_gemm( alpha, &A, &B, beta, &C_ref);
+            my_mm(&A, &B, &C_ref, m, n, k);
         }
         ref_rectime = bl_clock() - ref_beg;
     }
 
-    double        resid, resid_other;
+    double        resid;
     obj_t  norm;
     double junk;
 
@@ -101,8 +131,8 @@ void run(dim_t m, dim_t n, dim_t k, int nreps, int variant, fmm_t* fmm)
     // Compute overall floating point operations.
     flops = ( m * n / ( 1000.0 * 1000.0 * 1000.0 ) ) * ( 2 * k );
 
-    printf( "%5d\t %5d\t %5d\t %5.2lf\t %5.2lf\t %5.2g\t %5.2g\n",
-                m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid, resid_other );
+    printf( "%5d\t %5d\t %5d\t %5.2lf\t %5.2lf\t %5.2g\n",
+                m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid );
 
     fflush(stdout);
 
@@ -113,7 +143,20 @@ void run(dim_t m, dim_t n, dim_t k, int nreps, int variant, fmm_t* fmm)
     bli_obj_free( &C_ref );
     bli_obj_free( &diffM );
 
+    free_fmm(fmm);
+
     return failed;
+}
+
+bool is_numeric(const char *str) 
+{
+    while(*str != '\0')
+    {
+        if(*str < '0' || *str > '9')
+            return false;
+        str++;
+    }
+    return true;
 }
 
 int main( int argc, char *argv[] )
@@ -136,8 +179,15 @@ int main( int argc, char *argv[] )
     int n = atoi(argv[2]);
     int k = atoi(argv[3]);
 
+    // if (1) {
+    //     fmm_t final_fmm = new_fmm("classical.txt");
+    //     run(m, n, k, 1, -1, &final_fmm);
+    //     free_fmm(&final_fmm);
+    //     return 0;
+    // }
+
     int nreps = 3;
-    int variant = -2;
+    int variant = -1;
 
     enum DriverFlag current_flag = NONE;
 
@@ -170,7 +220,8 @@ int main( int argc, char *argv[] )
                                 free(fmm_layers);
                             }
 
-                            if (!isnumber(argv[i])) {
+                            if (!is_numeric(argv[i])) {
+                                printf("%s\n\n", argv[i]);
                                 printf("Incorrect format of driver parameters\n");
                                 bli_abort();
                             }
@@ -180,7 +231,7 @@ int main( int argc, char *argv[] )
                             assert(num_layers + i <= argc);
                             printf("Reading FMM recipe:\n");
                             for (int j = 0; j < num_layers; j++) {
-                                printf("%d -> %s\n", argv[i]);
+                                printf("%d -> %s\n", j, argv[i]);
                                 fmm_layers[j] = new_fmm(argv[i]);
                                 ++i;
                             }
@@ -220,7 +271,7 @@ int main( int argc, char *argv[] )
     }
     free(fmm_layers);
 
-    run(m, n, k, nreps, variant, &final_fmm);
+    run(m, n, k, variant, &final_fmm, nreps);
 
     free_fmm(&final_fmm);
 
