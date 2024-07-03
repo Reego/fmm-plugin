@@ -756,14 +756,14 @@ int main( int argc, char *argv[] )
     // m = k = 16;
     // n = 16;
 
-    m = 1; n = 3; k = 1;
+    m = 3; n = 22; k = 9;
 
     // fmm_t fmm = new_fmm_ex("strassen.txt", 2);
     // print_fmm(&fmm);
 
     printf("\n\n\n");
 
-    test_bli_symm_strassen_ex( m, n, k, 1);
+    test_bli_strassen_ex( m, n, k, 1);
 
     // free_fmm(&fmm);
 
