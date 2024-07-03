@@ -9,9 +9,11 @@
 #define M_CONST X
 #define K_CONST X
 
-#define DEBUG_test 1
-#define RUN_trials 0
+#define DEBUG_test 0
+#define RUN_trials 1
 #define SQUARE 0
+
+#define RUN_LARGE 0
 
 #define _U( i,j ) fmm.U[ (i)*fmm.R + (j) ]
 #define _V( i,j ) fmm.V[ (i)*fmm.R + (j) ]
@@ -99,10 +101,9 @@ double my_max_diff_d(obj_t* A, obj_t* B, dim_t m, dim_t n) {
     return max_diff;
 }
 
-int test_bli_strassen_ex_ex( int m, int n, int k, int debug, fmm_t* fmm )
+int test_bli_strassen_ex( int m, int n, int k, fmm_t* fmm )
 {   
-    // fmm_t fmm = new_fmm("222.txt");
-    // fmm_t fmm = new_fmm_ex("222.txt", 2);
+    int debug = 0;
 
     obj_t* null = 0;
 
@@ -255,12 +256,6 @@ int test_bli_strassen_ex_ex( int m, int n, int k, int debug, fmm_t* fmm )
 
     bli_obj_scalar_init_detached( dt, &norm );
 
-    if (DEBUG_test) {
-        printf("\n\n----------------------\n\n");
-        bli_printm( "RESULT 'C', initialized by columns:", &C, "%5.3f", "" );
-        bli_printm( "REFERENCE 'C_REF', initialized by columns:", &C_ref, "%5.3f", "" );
-    }
-
     bli_copym( &C_ref, &diffM );
 
     bli_subm( &C, &diffM );
@@ -299,17 +294,10 @@ int test_bli_strassen_ex_ex( int m, int n, int k, int debug, fmm_t* fmm )
     return failed;
 }
 
-int test_bli_strassen_ex(int m, int n, int k, int debug) {
-    fmm_t fmm = new_fmm_ex("222.txt", 2);
-    int res = test_bli_strassen_ex_ex(m, n, k, debug, &fmm);
-    free_fmm(&fmm);
-    return res;
-}
-
-int test_bli_symm_strassen_ex( int m, int n, int k, int debug )
+int test_bli_symm_strassen_ex( int m, int n, int k, fmm_t* fmm)
 {   
+    int debug = 0;
     k = m;
-    fmm_t fmm = new_fmm("classical.txt");
 
     obj_t* null = 0;
 
@@ -334,8 +322,7 @@ int test_bli_symm_strassen_ex( int m, int n, int k, int debug )
     double ref_rectime, bl_dgemm_rectime;
     double diff;
 
-    // dt = BLIS_DCOMPLEX;
-    dt = BLIS_DOUBLE;
+    dt = BLIS_DCOMPLEX;
 
     // rsC = 1; csC = m;
     // rsA = 1; csA = m;
@@ -387,9 +374,6 @@ int test_bli_symm_strassen_ex( int m, int n, int k, int debug )
     bli_setd( &BLIS_MINUS_ONE, &B );
     bli_setm( &BLIS_ZERO, &C );
     bli_copym( &C, &C_ref );
-
-    bli_obj_set_struc( BLIS_SYMMETRIC, &A );
-    bli_obj_set_uplo( BLIS_UPPER, &A );
 
     void*  buf_A    = bli_obj_buffer_at_off( &A ); 
     inc_t  rs_A     = bli_obj_row_stride( &A ); 
@@ -457,11 +441,12 @@ int test_bli_symm_strassen_ex( int m, int n, int k, int debug )
             bl_dgemm_rectime = bl_dgemm_time < bl_dgemm_rectime ? bl_dgemm_time : bl_dgemm_rectime;
         }
     }
+
     for ( i = 0; i < nrepeats; i ++ ) {
         ref_beg = bl_clock();
         {
             // bli_gemm( alpha, &A, &B, beta, &C_ref);
-            bli_symm(BLIS_LEFT, alpha, &A, &B, beta, &C_ref);
+            bli_symm(side, alpha, &A, &B, beta, &C_ref);
             // my_mm(&A, &B, &C_ref, m, n, k);
         }
         ref_time = bl_clock() - ref_beg;
@@ -478,12 +463,6 @@ int test_bli_symm_strassen_ex( int m, int n, int k, int debug )
     double junk;
 
     bli_obj_scalar_init_detached( dt, &norm );
-
-    if (DEBUG_test) {
-        printf("\n\n----------------------\n\n");
-        bli_printm( "RESULT 'C', initialized by columns:", &C, "%5.3f", "" );
-        bli_printm( "REFERENCE 'C_REF', initialized by columns:", &C_ref, "%5.3f", "" );
-    }
 
     if (dt == BLIS_DCOMPLEX) {
         resid = my_max_diff_d(&C, &C_ref, m, n);
@@ -530,262 +509,146 @@ int test_bli_symm_strassen_ex( int m, int n, int k, int debug )
     return failed;
 }
 
-void test_bli_strassen( int m, int n, int k )
-{   test_bli_strassen_ex(m, n, k, true);
-}
-
-int other2()
+int run_gemm_tests(fmm_t* fmm, int* outputs)
 {
-    num_t dt;
-    dim_t m, n, k;
-    inc_t rs, cs;
-    side_t side;
-
-    obj_t a, b, c, c_ref;
-    obj_t* alpha;
-    obj_t* beta;
-
-
-    //
-    // This file demonstrates level-3 operations.
-    //
-
-    //
-    // Example 3: Perform a symmetric matrix-matrix multiply (symm) operation.
-    //
-
-    printf( "\n#\n#  -- Example 3 --\n#\n\n" );
-
-    // Create some matrix and vector operands to work with.
-    dt = BLIS_DCOMPLEX;
-    m = 5; n = 6; rs = 0; cs = 0;
-    // m = 5; n = 5; rs = 0; cs = 0;
-    bli_obj_create( dt, m, m, rs, cs, &a );
-    bli_obj_create( dt, m, n, rs, cs, &b );
-    bli_obj_create( dt, m, n, rs, cs, &c );
-    bli_obj_create( dt, m, n, rs, cs, &c_ref );
-
-    printf("C dt is %d", bli_obj_dt( &c ));
-
-    // Set the scalars to use.
-    alpha = &BLIS_ONE;
-    beta  = &BLIS_ONE;
-
-    // Set the side operand.
-    side = BLIS_LEFT;
-
-    // Initialize matrices 'b' and 'c'.
-    // bli_setm( &BLIS_ONE,  &a ); // ###
-
-
-    bli_setm( &BLIS_ONE,  &b );
-    bli_setm( &BLIS_ZERO, &c );
-    bli_setm( &BLIS_ZERO, &c_ref );
-
-    // Zero out all of matrix 'a'. This is optional, but will avoid possibly
-    // displaying junk values in the unstored triangle.
-    bli_setm( &BLIS_ZERO, &a ); // ###
-
-    // Mark matrix 'a' as symmetric and stored in the upper triangle, and
-    // then randomize that upper triangle.
-
-
-    bli_obj_set_struc( BLIS_SYMMETRIC, &a ); // ###
-    bli_obj_set_uplo( BLIS_UPPER, &a ); // ###
-    bli_randm( &a ); // ###
-
-    bli_printm( "a: randomized (zeros in lower triangle)", &a, "%4.1f", "" );
-    bli_printm( "b: set to 1.0", &b, "%4.1f", "" );
-    bli_printm( "c: initial value", &c, "%4.1f", "" );
-
-    // c := beta * c + alpha * a * b, where 'a' is symmetric and upper-stored.
-    // Note that the first 'side' operand indicates the side from which matrix
-    // 'a' is multiplied into 'b'.
-    bli_strassen_ab_symm( alpha, &a, &b, beta, &c );
-    bli_printm( "c: after symm", &c, "%4.1f", "" );
-
-    // bli_strassen_ab(alpha, &a, &b, beta, &c_ref );
-    bli_symm(side, alpha, &a, &b, beta, &c_ref);
-    bli_printm( "c_ref: after symm", &c_ref, "%4.1f", "" );
-
-    // Free the objects.
-    bli_obj_free( &a );
-    bli_obj_free( &b );
-    bli_obj_free( &c );
-    bli_obj_free( &c_ref );
-
-
-    return 0;
-}
-
-
-int other()
-{
-    num_t dt;
-    dim_t m, n, k;
-    inc_t rs, cs;
-    side_t side;
-
-    obj_t a, b, c, c_ref;
-    obj_t* alpha;
-    obj_t* beta;
-
-
-    //
-    // This file demonstrates level-3 operations.
-    //
-
-    //
-    // Example 3: Perform a symmetric matrix-matrix multiply (symm) operation.
-    //
-
-    printf( "\n#\n#  -- Example 3 --\n#\n\n" );
-
-    // Create some matrix and vector operands to work with.
-    dt = BLIS_DCOMPLEX;
-    // dt = BLIS_DOUBLE;
-    m = 4; n = 4; rs = 0; cs = 0;
-    k = m;
-    // m = 5; n = 5; rs = 0; cs = 0;
-    bli_obj_create( dt, m, k, rs, cs, &a );
-    bli_obj_create( dt, k, n, rs, cs, &b );
-    bli_obj_create( dt, m, n, rs, cs, &c );
-    bli_obj_create( dt, m, n, rs, cs, &c_ref );
-
-    // Set the scalars to use.
-    alpha = &BLIS_ONE;
-    beta  = &BLIS_ONE;
-
-    // Set the side operand.
-    side = BLIS_LEFT;
-
-    // Initialize matrices 'b' and 'c'.
-    // bli_setm( &BLIS_ONE,  &a ); // ###
-
-
-    bli_setm( &BLIS_ONE,  &b );
-    bli_setm( &BLIS_ZERO, &c );
-    bli_setm( &BLIS_ZERO, &c_ref );
-
-    // Zero out all of matrix 'a'. This is optional, but will avoid possibly
-    // displaying junk values in the unstored triangle.
-    bli_setm( &BLIS_ZERO, &a ); // ###
-
-    // Mark matrix 'a' as symmetric and stored in the upper triangle, and
-    // then randomize that upper triangle.
-
-
-    bli_obj_set_struc( BLIS_SYMMETRIC, &a ); // ###
-    bli_obj_set_uplo( BLIS_UPPER, &a ); // ###
-    bli_randm( &a ); // ###
-
-    bli_printm( "a: randomized (zeros in lower triangle)", &a, "%4.1f", "" );
-    bli_printm( "b: set to 1.0", &b, "%4.1f", "" );
-    bli_printm( "c: initial value", &c, "%4.1f", "" );
-
-    // c := beta * c + alpha * a * b, where 'a' is symmetric and upper-stored.
-    // Note that the first 'side' operand indicates the side from which matrix
-    // 'a' is multiplied into 'b'.
-    bli_strassen_ab_symm( alpha, &a, &b, beta, &c );
-    bli_printm( "c: after symm", &c, "%4.1f", "" );
-
-    // bli_gemm(alpha, &a, &b, beta, &c_ref );
-    bli_symm(side, alpha, &a, &b, beta, &c_ref);
-    bli_printm( "c_ref: after symm", &c_ref, "%4.1f", "" );
-
-    // Free the objects.
-    bli_obj_free( &a );
-    bli_obj_free( &b );
-    bli_obj_free( &c );
-    bli_obj_free( &c_ref );
-
-
-    return 0;
-}
-
-// -----------------------------------------------------------------------------
-
-
-
-int main( int argc, char *argv[] )
-{
-
-    printf("main.\n\n");
-
-    if (0) {
-        
-        fmm_t fmm = new_fmm_ex("strassen.txt", 2);
-        print_fmm(&fmm);
-    
-        return 0;
-    }
-
-    #if RUN_trials
-    int LIMIT = 1204;
-    int START = 400;
-    int END = 404;
-
-    // int LIMIT = 30;
-    // int START = 1;
-    // int END = 10;
-
     int failed = 0;
+    int test_id = 0;
 
-    // for (int l = 0; l < LIMIT; l++) {
+    {
+        int LIMIT = 30;
+        int START = 1;
+        int END = 10;
         for (int m = START; m < END; m++) {
             for (int n = START; n < END; n++) {
                 for (int k = START; k < END; k++) {
                     if (m + n + k <= LIMIT) {
-                        #if SQUARE
-                        if (m == n && n == k)
-                            failed += test_bli_symm_strassen_ex(m, n, k, 1);
-                        #else
-                            failed += test_bli_symm_strassen_ex(m, n, k, 1);
-                        #endif
+                        printf("\tRunning GEMM SMALL test %d\n", test_id++);
+                        failed += test_bli_strassen_ex(m, n, k, fmm);
                     }
                 }
             }
         }
+    }
 
-    printf("\n\n\n=======================\nFailed %d tests\n\n", failed);
-    // }
-    #else
+    {
+        int LIMIT = 1204;
+        int START = 400;
+        int END = 404;
+        for (int m = START; m < END; m++) {
+            for (int n = START; n < END; n++) {
+                for (int k = START; k < END; k++) {
+                    if (m + n + k <= LIMIT) {
+                        printf("\tRunning GEMM MEDIUM test %d\n", test_id++);
+                        failed += test_bli_strassen_ex(m, n, k, fmm);
+                    }
+                }
+            }
+        }
+    }
 
-    int m, n, k;
-    // m = n = k = 100;
-    // m = k = 16;
-    // n = 16;
+    if (RUN_LARGE) {
+        int LIMIT = 12004;
+        int START = 4000;
+        int END = 4004;
+        for (int m = START; m < END; m++) {
+            for (int n = START; n < END; n++) {
+                for (int k = START; k < END; k++) {
+                    if (m + n + k <= LIMIT) {
+                        printf("\tRunning GEMM LARGE test %d\n", test_id++);
+                        failed += test_bli_strassen_ex(m, n, k, fmm);
+                    }
+                }
+            }
+        }
+    }
 
-    m = 3; n = 22; k = 9;
+    printf("\n\n=======================================\n");
+    printf("\nPassed %d out of %d tests total.\n");
 
-    // fmm_t fmm = new_fmm_ex("strassen.txt", 2);
-    // print_fmm(&fmm);
+    outputs[0] = failed;
+    outputs[1] = test_id;
+}
 
-    printf("\n\n\n");
+int run_symm_tests(fmm_t* fmm, int* outputs)
+{
+    int failed = 0;
+    int test_id = 0;
 
-    test_bli_strassen_ex( m, n, k, 1);
+    {
+        int LIMIT = 30;
+        int START = 1;
+        int END = 10;
+        for (int m = START; m < END; m++) {
+            for (int n = START; n < END; n++) {
+                for (int k = START; k < END; k++) {
+                    if (m + n + k <= LIMIT) {
+                        printf("\tRunning SYMM SMALL test %d\n", test_id++);
+                        failed += test_bli_symm_strassen_ex(m, n, k, fmm);
+                    }
+                }
+            }
+        }
+    }
 
-    // free_fmm(&fmm);
+    {
+        int LIMIT = 1204;
+        int START = 400;
+        int END = 404;
+        for (int m = START; m < END; m++) {
+            for (int n = START; n < END; n++) {
+                for (int k = START; k < END; k++) {
+                    if (m + n + k <= LIMIT) {
+                        printf("\tRunning SYMM MEDIUM test %d\n", test_id++);
+                        failed += test_bli_symm_strassen_ex(m, n, k, fmm);
+                    }
+                }
+            }
+        }
+    }
 
-    // test_bli_strassen_ex( m, n, k, 1);
-    #endif
+    if (RUN_LARGE) {
+        int LIMIT = 12004;
+        int START = 4000;
+        int END = 4004;
+        for (int m = START; m < END; m++) {
+            for (int n = START; n < END; n++) {
+                for (int k = START; k < END; k++) {
+                    if (m + n + k <= LIMIT) {
+                        printf("\tRunning SYMM LARGE test %d\n", test_id++);
+                        failed += test_bli_symm_strassen_ex(m, n, k, fmm);
+                    }
+                }
+            }
+        }
+    }
 
-    // #if 0
-    // test_bl_dgemm( m, n, k );
-    // #else
-    // test_bli_strassen( m, n, k );
-    // #endif
+    printf("\n\n=======================================\n");
+    printf("\nPassed %d out of %d tests total.\n");
 
+    outputs[0] = failed;
+    outputs[1] = test_id;
+}
 
+int main( int argc, char *argv[] )
+{
 
-    // if ( argc != 4 ) {
-    //     printf( "Error: require 3 arguments, but only %d provided.\n", argc - 1 );
-    //     exit( 0 );
-    // }
+    fmm_t fmm = new_fmm_ex("strassen.txt", 2);
 
-    // sscanf( argv[ 1 ], "%d", &m );
-    // sscanf( argv[ 2 ], "%d", &n );
-    // sscanf( argv[ 3 ], "%d", &k );
+    int gemm_outputs[2];
+    int symm_outputs[2];
 
-    return 0;
+    run_gemm_tests(&fmm, gemm_outputs);
+    run_symm_tests(&fmm, symm_outputs);
+
+    int gemm_tests = gemm_outputs[1];
+    int gemm_passed = gemm_tests - gemm_outputs[0];
+
+    int symm_tests = symm_outputs[1];
+    int symm_passed = symm_tests - symm_outputs[0];
+
+    printf("\n\n=======================================\n");
+    printf("\nPassed %d out of %d tests total for GEMM.\n", gemm_passed, gemm_tests);
+    printf("\nPassed %d out of %d tests total for SYMM.\n", symm_passed, symm_tests);
+
+    free_fmm(&fmm);
 }
