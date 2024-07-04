@@ -12,7 +12,8 @@ enum DriverFlag {
     NONE,
     REP_FLAG,
     VAR_FLAG,
-    FMM_FLAG
+    FMM_FLAG,
+    RANDOM_FLAG
 };
 
 void my_mm(obj_t* A, obj_t* B, obj_t* C, dim_t m, dim_t n, dim_t k) {
@@ -188,6 +189,7 @@ int main( int argc, char *argv[] )
 
     int nreps = 3;
     int variant = -1;
+    bool randomize = false;
 
     enum DriverFlag current_flag = NONE;
 
@@ -209,6 +211,8 @@ int main( int argc, char *argv[] )
                         case 'v':
                             current_flag = VAR_FLAG;
                         break;
+                        case 'z':
+                            current_flag = RANDOM_FLAG;
                         case 'f':
                             ++i;
 
@@ -246,6 +250,8 @@ int main( int argc, char *argv[] )
             break;
             case VAR_FLAG:
                 variant = atoi(arg);
+            case RANDOM_FLAG:
+                randomize = true;
             break;
         }
         current_flag = NONE;
@@ -270,6 +276,10 @@ int main( int argc, char *argv[] )
         }
     }
     free(fmm_layers);
+
+    if (randomize) {
+        fmm_shuffle_columns(&final_fmm);
+    }
 
     run(m, n, k, variant, &final_fmm, nreps);
 

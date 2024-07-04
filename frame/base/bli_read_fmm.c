@@ -70,6 +70,56 @@ void fmm_rearrange(
     free(dest);
 }
 
+void shuffle(int *array, size_t n)
+{
+    if (n > 1) 
+    {
+        size_t i;
+        for (i = 0; i < n - 1; i++) 
+        {
+          size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
+          int t = array[j];
+          array[j] = array[i];
+          array[i] = t;
+        }
+    }
+}
+
+void reshuffle_columns(int* order, float* U, int m, int k, int R) {
+
+    float buffer = (float*) malloc(m * k * R);
+
+    memcpy(U, buffer);
+
+    for (int r = 0; r < R; r++)
+    {
+        for (int i = 0; i < m * k; i++)
+        {
+            U[i * R + r] = U[i * R + order[r]]
+        }
+    }
+
+    free(buffer);
+}
+
+void fmm_shuffle_columns_ex(fmm_t* fmm, int* order)
+{
+    shuffle(order, fmm->R);
+
+    reshuffle_columns(order, fmm->U, fmm->m_tilde, fmm->k_tilde, fmm->R);
+    reshuffle_columns(order, fmm->V, fmm->k_tilde, fmm->n_tilde, fmm->R);
+    reshuffle_columns(order, fmm->W, fmm->m_tilde, fmm->n_tilde, fmm->R);
+}
+
+void fmm_shuffle_columns(fmm_t* fmm)
+{
+    int* order = (int*) malloc(fmm->R);
+
+    fmm_shuffle_columns_ex(fmm, order);
+
+    free(order)
+}
+
 void nest_fmm_helper(
     fmm_t* fmm_a,
     fmm_t* fmm_b,

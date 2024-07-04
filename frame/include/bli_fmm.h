@@ -183,6 +183,10 @@ fmm_t new_fmm_ex(const char* file_name, int nest_level);
 
 fmm_t nest_fmm(fmm_t* fmm_a, fmm_t* fmm_b);
 
+void fmm_shuffle_columns_ex(fmm_t* fmm, int* order);
+
+void fmm_shuffle_columns(fmm_t* fmm);
+
 void print_fmm(fmm_t* fmm);
 
 void free_fmm(fmm_t* fmm);
