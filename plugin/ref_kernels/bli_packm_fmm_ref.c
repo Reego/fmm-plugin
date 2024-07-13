@@ -90,7 +90,6 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	ctype kappa_cast, lambda; \
 	kappa_cast = *( ctype* )kappa; \
 	PASTEMAC3(ch, s, ch,scal2s)( kappa_cast, coef[ 0 ], lambda ); \
-	ctype lambda2 = lambda;\
 \
 	const ctype* restrict c_use = ( ctype* )c + off_m[ 0 ] * incc + off_k[ 0 ] * ldc; \
 	      ctype* restrict p_use = ( ctype* )p; \
@@ -131,6 +130,8 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	for ( dim_t s = 1; s < nsplit; s++ ) \
 	{ \
 		PASTEMAC3(ch, s, ch, scal2s)( kappa_cast, coef[ s ], lambda );\
+\
+		if (PASTECH2(bli_,ch,eq0)(lambda)) continue;\
 \
 		inc_t total_off_m = panel_dim_off + off_m[s];\
 		inc_t total_off_n = panel_len_off + off_k[s];\
