@@ -223,8 +223,6 @@ void bli_strassen_ab_ex_var( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_
     obj_t B_local;
     obj_t C_local;
 
-    obj_t A0, B0, C0;
-
     bli_obj_alias_submatrix( A, &A_local );
     bli_obj_alias_submatrix( B, &B_local );
     bli_obj_alias_submatrix( C, &C_local );
@@ -356,7 +354,7 @@ void bli_strassen_ab_ex_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t
 
 
 void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t* fmm ) {
-    bli_strassen_ab_ex_var(alpha, A, B, beta, C, fmm, 0);
+    bli_strassen_ab_ex_var(alpha, A, B, beta, C, fmm, 2);
 }
 
 void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )

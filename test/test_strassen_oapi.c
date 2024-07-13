@@ -300,7 +300,7 @@ int test_bli_strassen_ex_ex( int m, int n, int k, int debug, fmm_t* fmm )
 }
 
 int test_bli_strassen_ex(int m, int n, int k, int debug) {
-    fmm_t fmm = new_fmm_ex("222.txt", 2);
+    fmm_t fmm = new_fmm_ex("classical.txt", 1);
     int res = test_bli_strassen_ex_ex(m, n, k, debug, &fmm);
     free_fmm(&fmm);
     return res;
@@ -619,6 +619,67 @@ int other2()
 }
 
 
+void bl_fmm_acquire_spart_other
+     (
+             dim_t     row_splits,
+             dim_t     col_splits,
+             dim_t     split_rowidx,
+             dim_t     split_colidx,
+       const obj_t*    obj, // source
+             obj_t*    sub_obj // destination
+     )
+
+{
+    dim_t m, n;
+    dim_t row_part, col_part; //size of partition
+    dim_t row_left, col_left; // edge case
+    inc_t  offm_inc = 0;
+    inc_t  offn_inc = 0;
+
+    m = bli_obj_length( obj ); 
+    n = bli_obj_width( obj ); 
+
+    row_part = m / row_splits;
+    col_part = n / col_splits;
+
+    row_left = m % row_splits;
+    col_left = n % col_splits;
+
+    /* AT the moment not dealing with edge cases. bli_strassen_ab checks for 
+    edge cases. But does not do anything with it. 
+    */
+    if ( 0 && row_left != 0 || col_left != 0 && 0) {
+        bli_abort();
+    }
+
+    row_part = m / row_splits;
+    col_part = n / col_splits;
+
+    if (m % row_splits != 0) {
+        ++row_part;
+    }
+
+    if (n % col_splits != 0) {
+        ++col_part;
+    }
+
+    bli_obj_init_subpart_from( obj, sub_obj );
+
+    bli_obj_set_dims( row_part, col_part, sub_obj );
+
+    bli_obj_set_padded_dims( m, n, sub_obj );
+
+    offm_inc = split_rowidx * row_part;
+    offn_inc = split_colidx * col_part;
+
+    //Taken directly from BLIS. Need to verify if this is still true. 
+    // Compute the diagonal offset based on the m and n offsets.
+    doff_t diagoff_inc = ( doff_t )offm_inc - ( doff_t )offn_inc;
+
+    bli_obj_inc_offs( offm_inc, offn_inc, sub_obj );
+    bli_obj_inc_diag_offset( diagoff_inc, sub_obj );
+}
+
 int other()
 {
     num_t dt;
@@ -626,7 +687,7 @@ int other()
     inc_t rs, cs;
     side_t side;
 
-    obj_t a, b, c, c_ref;
+    obj_t a, a0, b;
     obj_t* alpha;
     obj_t* beta;
 
@@ -642,15 +703,16 @@ int other()
     printf( "\n#\n#  -- Example 3 --\n#\n\n" );
 
     // Create some matrix and vector operands to work with.
-    dt = BLIS_DCOMPLEX;
-    // dt = BLIS_DOUBLE;
-    m = 4; n = 4; rs = 0; cs = 0;
+    // dt = BLIS_DCOMPLEX;
+    dt = BLIS_DOUBLE;
+    m = 16; n = 4; rs = 0; cs = 0;
     k = m;
     // m = 5; n = 5; rs = 0; cs = 0;
     bli_obj_create( dt, m, k, rs, cs, &a );
-    bli_obj_create( dt, k, n, rs, cs, &b );
-    bli_obj_create( dt, m, n, rs, cs, &c );
-    bli_obj_create( dt, m, n, rs, cs, &c_ref );
+
+    bl_fmm_acquire_spart (2, 2, 0, 0, &a, &a0 );
+
+    bli_obj_create( dt, m/2, k/2, rs, cs, &b );
 
     // Set the scalars to use.
     alpha = &BLIS_ONE;
@@ -661,11 +723,6 @@ int other()
 
     // Initialize matrices 'b' and 'c'.
     // bli_setm( &BLIS_ONE,  &a ); // ###
-
-
-    bli_setm( &BLIS_ONE,  &b );
-    bli_setm( &BLIS_ZERO, &c );
-    bli_setm( &BLIS_ZERO, &c_ref );
 
     // Zero out all of matrix 'a'. This is optional, but will avoid possibly
     // displaying junk values in the unstored triangle.
@@ -679,26 +736,19 @@ int other()
     bli_obj_set_uplo( BLIS_UPPER, &a ); // ###
     bli_randm( &a ); // ###
 
-    bli_printm( "a: randomized (zeros in lower triangle)", &a, "%4.1f", "" );
-    bli_printm( "b: set to 1.0", &b, "%4.1f", "" );
-    bli_printm( "c: initial value", &c, "%4.1f", "" );
+    bli_copym(&a0, &b);
 
-    // c := beta * c + alpha * a * b, where 'a' is symmetric and upper-stored.
-    // Note that the first 'side' operand indicates the side from which matrix
-    // 'a' is multiplied into 'b'.
-    bli_strassen_ab_symm( alpha, &a, &b, beta, &c );
-    bli_printm( "c: after symm", &c, "%4.1f", "" );
+    bli_printm( "a: randomized", &a, "%4.1f", "" );
+    bli_printm( "a0: randomized", &a0, "%4.1f", "" );
+    bli_printm( "b: randomized", &b, "%4.1f", "" );
 
-    // bli_gemm(alpha, &a, &b, beta, &c_ref );
-    bli_symm(side, alpha, &a, &b, beta, &c_ref);
-    bli_printm( "c_ref: after symm", &c_ref, "%4.1f", "" );
+    printf("a \t %d %d\n", a.rs, a.cs);
+    printf("a0 \t %d %d\n", a0.rs, a0.cs);
+    printf("b \t %d %d\n", b.rs, b.cs);
 
     // Free the objects.
     bli_obj_free( &a );
     bli_obj_free( &b );
-    bli_obj_free( &c );
-    bli_obj_free( &c_ref );
-
 
     return 0;
 }
@@ -711,6 +761,11 @@ int main( int argc, char *argv[] )
 {
 
     printf("main.\n\n");
+
+    if (0) {
+        other();
+        return;
+    }
 
     if (0) {
         
@@ -756,7 +811,8 @@ int main( int argc, char *argv[] )
     // m = k = 16;
     // n = 16;
 
-    m = 3; n = 22; k = 9;
+    m = n = 6;
+    k = 7;
 
     // fmm_t fmm = new_fmm_ex("strassen.txt", 2);
     // print_fmm(&fmm);

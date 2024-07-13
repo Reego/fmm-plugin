@@ -98,6 +98,15 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	/* Check if we need to shrink the micro-panel due to unequal partitioning. */ \
 	dim_t panel_dim_use = bli_min( panel_dim, m_max - ( panel_dim_off + off_m[ 0 ] ) ); \
 	dim_t panel_len_use = bli_min( panel_len, k_max - ( panel_len_off + off_k[ 0 ] ) ); \
+	inc_t ldc_prime = bli_obj_col_stride( &(params->parts[0]) );\
+	inc_t incc_prime = bli_obj_row_stride( &(params->parts[0]) );\
+	inc_t ldc_prev = ldc;\
+	inc_t incc_prev = incc;\
+	if (params->reindex) {\
+		incc = incc_prime;\
+		ldc = ldc_prime;\
+		c_use = ( ctype* )params->parts[0].buffer + panel_dim_off * incc + panel_len_off * ldc;\
+	}\
 \
 	\
 	/* Call the usual packing kernel to pack the first sub-matrix and take
@@ -126,12 +135,20 @@ void PASTEMAC3(ch,opname,arch,suf) \
 		inc_t total_off_m = panel_dim_off + off_m[s];\
 		inc_t total_off_n = panel_len_off + off_k[s];\
 \
-		c_use = ( ctype* )c + off_m[s] * incc + off_k[s] * ldc; \
-		p_use = ( ctype* )p; \
-\
-		/* Check if we need to shrink the micro-panel due to unequal partitioning. */ \
+				/* Check if we need to shrink the micro-panel due to unequal partitioning. */ \
 		panel_dim_use = bli_min(panel_dim, part_m[s] - panel_dim_off ); \
 		panel_len_use = bli_min(panel_len, part_n[s] - panel_len_off ); \
+\
+		if (!params->reindex) {\
+			c_use = ( ctype* )c + off_m[s] * incc + off_k[s] * ldc; \
+			p_use = ( ctype* )p; \
+		}\
+		else {\
+			ldc = bli_obj_col_stride( &(params->parts[s]) );\
+			incc = bli_obj_row_stride( &(params->parts[s]) );\
+			c_use = ( ctype* )params->parts[s].buffer + panel_dim_off * incc + panel_len_off * ldc; \
+			p_use = ( ctype* )p; \
+		}\
 		\
 		/* For subsequence sub-matrices, we don't need to re-zero any edges, just accumulate. */ \
 		for ( dim_t j = 0; j < panel_len_use; j++ ) \
@@ -145,6 +162,7 @@ void PASTEMAC3(ch,opname,arch,suf) \
 			p_use += ldp; \
 		} \
 	} \
+	\
 }
 
 INSERT_GENTFUNC_BASIC( packm_fmm, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX )

@@ -85,6 +85,10 @@ typedef struct fmm_params_t
     dim_t part_m[ MAX_NUM_PARTS ];
     dim_t part_n[ MAX_NUM_PARTS ];
 
+    bool reindex;
+
+    obj_t* parts;
+
 	// offsets of each partition relative to the parent matrix
 	// (when packing, m is the "short micro-panel dimension (m or n)", and n
 	// is the "long micro-panel dimension (k)")

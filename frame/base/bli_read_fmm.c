@@ -87,15 +87,15 @@ void shuffle(int *array, size_t n)
 
 void reshuffle_columns(int* order, float* U, int m, int k, int R) {
 
-    float buffer = (float*) malloc(m * k * R);
+    float* buffer = (float*) malloc(sizeof(float) * m * k * R);
 
-    memcpy(U, buffer);
+    memcpy(U, buffer, sizeof(float) * m * k * R);
 
     for (int r = 0; r < R; r++)
     {
         for (int i = 0; i < m * k; i++)
         {
-            U[i * R + r] = U[i * R + order[r]]
+            U[i * R + r] = U[i * R + order[r]];
         }
     }
 
@@ -113,11 +113,11 @@ void fmm_shuffle_columns_ex(fmm_t* fmm, int* order)
 
 void fmm_shuffle_columns(fmm_t* fmm)
 {
-    int* order = (int*) malloc(fmm->R);
+    int* order = (int*) malloc(sizeof(int) * fmm->R);
 
     fmm_shuffle_columns_ex(fmm, order);
 
-    free(order)
+    free(order);
 }
 
 void nest_fmm_helper(

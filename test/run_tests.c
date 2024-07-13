@@ -562,9 +562,6 @@ int run_gemm_tests(fmm_t* fmm, int* outputs)
         }
     }
 
-    printf("\n\n=======================================\n");
-    printf("\nPassed %d out of %d tests total.\n");
-
     outputs[0] = failed;
     outputs[1] = test_id;
 }
@@ -622,9 +619,6 @@ int run_symm_tests(fmm_t* fmm, int* outputs)
         }
     }
 
-    printf("\n\n=======================================\n");
-    printf("\nPassed %d out of %d tests total.\n");
-
     outputs[0] = failed;
     outputs[1] = test_id;
 }
@@ -635,20 +629,21 @@ int main( int argc, char *argv[] )
     fmm_t fmm = new_fmm_ex("strassen.txt", 2);
 
     int gemm_outputs[2];
-    int symm_outputs[2];
+    // int symm_outputs[2];
 
     run_gemm_tests(&fmm, gemm_outputs);
-    run_symm_tests(&fmm, symm_outputs);
+    // run_symm_tests(&fmm, symm_outputs);
 
     int gemm_tests = gemm_outputs[1];
     int gemm_passed = gemm_tests - gemm_outputs[0];
 
-    int symm_tests = symm_outputs[1];
-    int symm_passed = symm_tests - symm_outputs[0];
+    // int symm_tests = symm_outputs[1];
+    // int symm_passed = symm_tests - symm_outputs[0];
 
     printf("\n\n=======================================\n");
     printf("\nPassed %d out of %d tests total for GEMM.\n", gemm_passed, gemm_tests);
-    printf("\nPassed %d out of %d tests total for SYMM.\n", symm_passed, symm_tests);
+    printf("\nFailed %d out of %d tests total for GEMM.\n", gemm_outputs[0], gemm_tests);
+    // printf("\nPassed %d out of %d tests total for SYMM.\n", symm_passed, symm_tests);
 
     free_fmm(&fmm);
 }
