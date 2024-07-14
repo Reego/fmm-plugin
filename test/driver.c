@@ -44,10 +44,10 @@ void my_mm(obj_t* A, obj_t* B, obj_t* C, dim_t m, dim_t n, dim_t k) {
     }
 }
 
-void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm_, int nreps)
+void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
 {
-    fmm_t fmm_o = new_fmm("classical.txt");
-    fmm_t* fmm = &fmm_o;
+    // fmm_t fmm_o = new_fmm("classical.txt");
+    // fmm_t* fmm = &fmm_o;
     obj_t* null = 0;
 
     int failed = 0;
@@ -93,19 +93,39 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm_, int nreps)
     bli_randm( &C );
     bli_copym( &C, &C_ref );
 
-    for ( i = 0; i < nreps; i ++ ) {
-        bli_copym( &C_ref, &C );
-        bl_dgemm_beg = bl_clock();
-        {
-            bli_fmm( alpha, &A, &B, beta, &C, fmm);
-            // bli_strassen_ab( alpha, &A, &B, beta, &C);
-        }
-        bl_dgemm_time = bl_clock() - bl_dgemm_beg;
+    if (fmm == 0)
+    {
+        for ( i = 0; i < nreps; i ++ ) {
+            bli_copym( &C_ref, &C );
+            bl_dgemm_beg = bl_clock();
+            {
+                bli_gemm( alpha, &A, &B, beta, &C);
+                // my_mm(&A, &B, &C, m, n, k);
+            }
+            bl_dgemm_time = bl_clock() - bl_dgemm_beg;
 
-        if ( i == 0 ) {
-            bl_dgemm_rectime = bl_dgemm_time;
-        } else {
-            bl_dgemm_rectime = bl_dgemm_time < bl_dgemm_rectime ? bl_dgemm_time : bl_dgemm_rectime;
+            if ( i == 0 ) {
+                bl_dgemm_rectime = bl_dgemm_time;
+            } else {
+                bl_dgemm_rectime = bl_dgemm_time < bl_dgemm_rectime ? bl_dgemm_time : bl_dgemm_rectime;
+            }
+        }
+    }
+    else
+    {
+        for ( i = 0; i < nreps; i ++ ) {
+            bli_copym( &C_ref, &C );
+            bl_dgemm_beg = bl_clock();
+            {
+                bli_fmm( alpha, &A, &B, beta, &C, fmm);
+            }
+            bl_dgemm_time = bl_clock() - bl_dgemm_beg;
+
+            if ( i == 0 ) {
+                bl_dgemm_rectime = bl_dgemm_time;
+            } else {
+                bl_dgemm_rectime = bl_dgemm_time < bl_dgemm_rectime ? bl_dgemm_time : bl_dgemm_rectime;
+            }
         }
     }
 
@@ -113,8 +133,8 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm_, int nreps)
     {
         ref_beg = bl_clock();
         {
-            // bli_gemm( alpha, &A, &B, beta, &C_ref);
-            my_mm(&A, &B, &C_ref, m, n, k);
+            bli_gemm( alpha, &A, &B, beta, &C_ref);
+            // my_mm(&A, &B, &C_ref, m, n, k);
         }
         ref_rectime = bl_clock() - ref_beg;
     }
@@ -145,8 +165,6 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm_, int nreps)
     bli_obj_free( &C );
     bli_obj_free( &C_ref );
     bli_obj_free( &diffM );
-
-    free_fmm(fmm);
 
     return failed;
 }
@@ -197,8 +215,7 @@ int main( int argc, char *argv[] )
 
     enum DriverFlag current_flag = NONE;
 
-    fmm_t* fmm_layers = (fmm_t*) malloc(sizeof(fmm_t));
-    fmm_layers[0] = new_fmm("classical.txt");
+    fmm_t final_fmm = new_fmm("classical.txt");
     int num_layers = 1;
 
     for (int i = 4; i < argc; i++) {
@@ -228,10 +245,7 @@ int main( int argc, char *argv[] )
 
                             // cleanup
                             if (num_layers != 0) {
-                                for (int j = 0; j < num_layers; j++) {
-                                    free_fmm(&fmm_layers[j]);
-                                }
-                                free(fmm_layers);
+                                free_fmm(&final_fmm);
                             }
 
                             if (!is_numeric(argv[i])) {
@@ -240,13 +254,18 @@ int main( int argc, char *argv[] )
                                 bli_abort();
                             }
                             num_layers = atoi(argv[i]);
-                            fmm_layers = (fmm_t*) malloc(sizeof(fmm_t) * num_layers);
                             ++i;
                             assert(num_layers + i <= argc);
                             printf("Reading FMM recipe:\n");
                             for (int j = 0; j < num_layers; j++) {
                                 printf("%d -> %s\n", j, argv[i]);
-                                fmm_layers[j] = new_fmm(argv[i]);
+                                fmm_t child_fmm = new_fmm(argv[i]);
+                                if (j == 0) {
+                                    final_fmm = child_fmm;
+                                    i++;
+                                    continue;
+                                }
+                                final_fmm = nest_fmm(&final_fmm, &child_fmm);
                                 ++i;
                             }
 
@@ -266,6 +285,7 @@ int main( int argc, char *argv[] )
             break;
             case VAR_FLAG:
                 variant = atoi(arg);
+            break;
             case RANDOM_FLAG:
                 randomize = true;
             break;
@@ -277,22 +297,7 @@ int main( int argc, char *argv[] )
         printf("Illegal arguments to driver...\n");
         bli_abort();
         return 1;
-    }
-
-    printf("m %d\tn %d\tk %d\n", m, n, k);
-    printf("nreps %d \t variant %d reindex_a %d reindex_b %d\n\n",
-        nreps, variant, reindex_a, reindex_b);
-
-    fmm_t final_fmm = fmm_layers[0];
-    for (int j = 1; j < num_layers; j++) {
-        fmm_t* temp = &final_fmm;
-        final_fmm = nest_fmm(&final_fmm, &fmm_layers[j]);
-        if (j != 1) {
-            free_fmm(temp);
-            free_fmm(&fmm_layers[j]);
-        }
-    }
-    free(fmm_layers);
+    }  
 
     if (randomize) {
         fmm_shuffle_columns(&final_fmm);
@@ -302,7 +307,20 @@ int main( int argc, char *argv[] )
     final_fmm.reindex_b = reindex_b;
     final_fmm.variant = variant;
 
-    run(m, n, k, &final_fmm, nreps);
+    if (variant == -2)
+    {
+        run(m, n, k, 0, nreps);
+    }
+    else {
+        printf("m %d\tn %d\tk %d\n", m, n, k);
+        printf("nreps %d \t variant %d reindex_a %d reindex_b %d\n\n",
+            nreps, variant, reindex_a, reindex_b);
+        printf("fmm->R %d mt %d nt %d kt %d\n",
+            final_fmm.R, final_fmm.m_tilde, final_fmm.n_tilde, final_fmm.k_tilde);
+
+        run(m, n, k, &final_fmm, nreps);
+        printf("\n\n");
+    }
 
     free_fmm(&final_fmm);
 
