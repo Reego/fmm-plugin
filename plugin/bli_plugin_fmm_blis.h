@@ -33,6 +33,9 @@
 
 */
 
+#ifndef BLIS_PLUGIN_FMM_H
+#define BLIS_PLUGIN_FMM_H
+
 #include "blis.h"
 
 //
@@ -221,3 +224,4 @@ INSERT_GENTCONF
 
 BLIS_EXPORT_BLIS err_t PASTEMAC(plugin_register,BLIS_PNAME_INFIX)( PASTECH2(plugin,BLIS_PNAME_INFIX,_params) );
 
+#endif

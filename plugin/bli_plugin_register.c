@@ -34,6 +34,7 @@
 */
 
 #include "blis.h"
+#include "bli_plugin_fmm_blis.h"
 
 #include STRINGIFY_INT(PASTEMAC(plugin,BLIS_PNAME_INFIX).h)
 
