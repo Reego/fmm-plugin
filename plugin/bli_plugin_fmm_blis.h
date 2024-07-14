@@ -67,6 +67,11 @@ typedef struct fmm_s {
     int* U;
     int* V;
     int* W;
+
+    int variant;
+
+    bool reindex_a;
+    bool reindex_b;
 } fmm_t;
 
 // The same structure is used for packing and in the micro-kernel, but
@@ -85,6 +90,10 @@ typedef struct fmm_params_t
     dim_t part_m[ MAX_NUM_PARTS ];
     dim_t part_n[ MAX_NUM_PARTS ];
 
+    bool reindex;
+
+    obj_t* parts;
+
 	// offsets of each partition relative to the parent matrix
 	// (when packing, m is the "short micro-panel dimension (m or n)", and n
 	// is the "long micro-panel dimension (k)")
@@ -97,6 +106,14 @@ typedef struct fmm_params_t
     //
     obj_t* local;
 } fmm_params_t;
+
+typedef struct fmm_config_s
+{
+    fmm_t* fmm;
+    int fmm_part_variant;
+    bool reindex_a;
+    bool reindex_b;
+} fmm_config_t;
 
 //
 // Prototypes for reference kernels

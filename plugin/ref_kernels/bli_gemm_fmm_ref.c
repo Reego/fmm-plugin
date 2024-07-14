@@ -104,6 +104,7 @@ void PASTEMAC3(ch,opname,arch,suf) \
 		ctype alpha_cast, lambda; \
 		alpha_cast = *( ctype* )alpha; \
 		PASTEMAC3(ch, s, ch, scal2s)( alpha_cast, coef[ s ], lambda ); \
+		if (PASTECH2(bli_,ch,eq0)(lambda)) continue;\
 \
 		ctype* restrict c_use = ( ctype* )c + off_m[ s ] * rs_c + off_n[ s ] * cs_c; \
 		\

@@ -32,6 +32,9 @@ fmm_t STRASSEN_FMM = {
     .U = &STRASSEN_FMM_U,
     .V = &STRASSEN_FMM_V,
     .W = &STRASSEN_FMM_W,
+    .reindex_a = false,
+    .reindex_b = false,
+    .variant = -1,
 };
 
 fmm_t CLASSICAL_FMM = {
@@ -42,6 +45,9 @@ fmm_t CLASSICAL_FMM = {
     .U = &CLASSICAL_FMM_U,
     .V = &CLASSICAL_FMM_V,
     .W = &CLASSICAL_FMM_W,
+    .reindex_a = false,
+    .reindex_b = false,
+    .variant = -1,
 };
 
 
@@ -181,8 +187,10 @@ void init_part_offsets(dim_t* row_off, dim_t* col_off, dim_t* part_m, dim_t* par
     }
 }
 
-void bli_strassen_ab_ex_var( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t* fmm, int variant) {
+void bli_fmm( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t* fmm)
+{
 
+    int variant = fmm->variant;
     static int registered = false;
 
     bli_init_once();
@@ -222,8 +230,6 @@ void bli_strassen_ab_ex_var( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_
     obj_t A_local;
     obj_t B_local;
     obj_t C_local;
-
-    obj_t A0, B0, C0;
 
     bli_obj_alias_submatrix( A, &A_local );
     bli_obj_alias_submatrix( B, &B_local );
@@ -350,16 +356,7 @@ void bli_strassen_ab_ex_var( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_
     );
 }
 
-void bli_strassen_ab_ex_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t* fmm, int variant) {
-    bli_strassen_ab_ex_var(alpha, A, B, beta, C, fmm, variant);
-}
-
-
-void bli_strassen_ab_ex( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C, fmm_t* fmm ) {
-    bli_strassen_ab_ex_var(alpha, A, B, beta, C, fmm, 0);
-}
-
 void bli_strassen_ab( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t* C )
 {
-    bli_strassen_ab_ex( alpha, A, B, beta, C, &STRASSEN_FMM );
+    bli_fmm( alpha, A, B, beta, C, &STRASSEN_FMM );
 }

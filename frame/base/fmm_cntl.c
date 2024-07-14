@@ -98,29 +98,34 @@ void bli_fmm_cntl
     fmm_params_t paramsC;
 
     // TODO
-    dim_t n = bli_obj_length( c );
-    dim_t m = bli_obj_width( c );
+    // dim_t n = bli_obj_length( c );
+    // dim_t m = bli_obj_width( c );
+    // dim_t k = bli_obj_width( a );
+    dim_t m = bli_obj_length( c );
+    dim_t n = bli_obj_width( c );
     dim_t k = bli_obj_width( a );
 
     dim_t m_edge, m_whole, k_edge, k_whole, n_edge, n_whole;
 
     bl_fmm_acquire_spart (fmm->m_tilde, fmm->k_tilde, 0, 0, a, &a0 );
     bl_fmm_acquire_spart (fmm->k_tilde, fmm->n_tilde, 0, 0, b, &b0 );
-    bl_fmm_acquire_spart (fmm->k_tilde, fmm->n_tilde, 0, 0, c, &c0 );
+    bl_fmm_acquire_spart (fmm->m_tilde, fmm->n_tilde, 0, 0, c, &c0 );
 
     bli_obj_alias_submatrix( &a0, &a_local );
     bli_obj_alias_submatrix( &b0, &b_local );
     bli_obj_alias_submatrix( &c0, &c_local );
 
     paramsA.m_max = m; paramsA.n_max = k;
-    paramsB.m_max = n; paramsB.n_max = k;
-    paramsC.m_max = n; paramsC.n_max = m;
+    paramsB.m_max = n; paramsB.n_max = k; // B gets transposed
+    paramsC.m_max = m; paramsC.n_max = n;
     paramsC.local = &c_local;
 
     func_t *pack_ukr;
 
-    bli_gemm_cntl_set_packa_params((const void *) &paramsB, gemm_cntl);
-    bli_gemm_cntl_set_packb_params((const void *) &paramsA, gemm_cntl);
+    // bli_gemm_cntl_set_packa_params((const void *) &paramsB, gemm_cntl);
+    // bli_gemm_cntl_set_packb_params((const void *) &paramsA, gemm_cntl);
+    bli_gemm_cntl_set_packa_params((const void *) &paramsA, gemm_cntl);
+    bli_gemm_cntl_set_packb_params((const void *) &paramsB, gemm_cntl);
     bli_gemm_cntl_set_params((const void *) &paramsC, gemm_cntl);
 
     dim_t row_off_A[fmm->m_tilde * fmm->k_tilde], col_off_A[fmm->m_tilde * fmm->k_tilde];
@@ -131,12 +136,103 @@ void bli_fmm_cntl
     dim_t row_off_B[fmm->k_tilde * fmm->n_tilde], col_off_B[fmm->k_tilde * fmm->n_tilde];
     dim_t part_m_B[fmm->k_tilde * fmm->n_tilde], part_n_B[fmm->k_tilde * fmm->n_tilde];
 
+    // need to stop order of the col_off, row_off and part_n and part_m pairs because
+    // B gets transposed before packing.
     init_part_offsets(col_off_B, row_off_B, part_n_B, part_m_B, k, n, fmm->k_tilde, fmm->n_tilde); // since B is transposed... something idk.
 
     dim_t row_off_C[fmm->m_tilde * fmm->n_tilde], col_off_C[fmm->m_tilde * fmm->n_tilde];
     dim_t part_m_C[fmm->m_tilde * fmm->n_tilde], part_n_C[fmm->m_tilde * fmm->n_tilde];
 
-    init_part_offsets(col_off_C, row_off_C, part_n_C, part_m_C, m, n, fmm->m_tilde, fmm->n_tilde);
+    init_part_offsets(row_off_C, col_off_C, part_m_C, part_n_C, m, n, fmm->m_tilde, fmm->n_tilde);
+
+    paramsA.reindex = fmm->reindex_a;
+    paramsB.reindex = fmm->reindex_b;
+
+
+    if (paramsA.reindex)
+    {
+        paramsA.parts = (obj_t*) malloc(fmm->m_tilde * fmm->k_tilde * sizeof(obj_t));
+        for (int i = 0; i < fmm->m_tilde; i++)
+        {
+            for (int j = 0; j < fmm->k_tilde; j++)
+            {
+                int part_index = i * fmm->k_tilde + j;
+
+                dim_t partm = part_m_A[part_index];
+                dim_t partn = part_n_A[part_index];
+
+                inc_t offm = row_off_A[part_index];
+                inc_t offn = col_off_A[part_index];
+
+                obj_t temp;
+
+                bli_acquire_mpart(
+                    offm,
+                    offn,
+                    partm,
+                    partn,
+                    a,
+                    &temp
+                );
+
+            //     bli_obj_alias_to( a, &a0 );
+            // bli_obj_alias_to( b, &b0 );
+            // bli_obj_alias_to( c, &c0 );
+                bli_obj_create( bli_obj_dt(&temp), partm, partn, 0, 0, &(paramsA.parts[part_index]) );
+                bli_copym(&temp, &(paramsA.parts[part_index]));
+
+                // printf("\n\n\t%ld %ld - %d %d\n", temp.cs, temp.rs, paramsA.parts[part_index].cs, paramsA.parts[part_index].rs);
+                // bli_printm( "\tmatrix 'atemp_local', initialized by columns:", &atemp_local, "%5.3f", "" );
+            }
+        }
+    }
+    
+    if (paramsB.reindex)
+    {
+        obj_t btemp_local;
+
+        // We always pass B^T to bli_l3_packm.
+        bli_obj_alias_to( b, &btemp_local );
+        bli_obj_induce_trans( &btemp_local );
+
+        for (int i = 0; i < fmm->k_tilde; i++)
+        {
+            for (int j = 0; j < fmm->n_tilde; j++)
+            {
+                int part_index = i * fmm->k_tilde + j;
+
+                dim_t partm = part_m_B[part_index];
+                dim_t partn = part_n_B[part_index];
+
+                inc_t offm = row_off_B[part_index];
+                inc_t offn = col_off_B[part_index];
+
+                obj_t temp;
+
+                bli_acquire_mpart(
+                    offm,
+                    offn,
+                    partm,
+                    partn,
+                    &btemp_local,
+                    &temp
+                );
+
+                // bli_obj_alias_submatrix(&temp, &(paramsB.parts[part_index]));
+                // bli_copym(&temp, &(paramsB.parts[part_index]));
+
+                bli_obj_create( bli_obj_dt(&temp), partm, partn, 0, 0, &(paramsB.parts[part_index]) );
+                bli_copym(&temp, &(paramsB.parts[part_index]));
+
+                // printf("\n\n\t%ld %ld - %d %d\n", temp.cs, temp.rs, paramsB.parts[part_index].cs, paramsB.parts[part_index].rs);
+                // bli_printm( "\tmatrix 'temp', initialized by columns:", &temp, "%5.3f", "" );
+                // bli_printm( "\tmatrix 'btemp_local', initialized by columns:", &btemp_local, "%5.3f", "" );
+            
+            }
+        }
+    }
+
+
 
     for ( dim_t r = 0; r < fmm->R; r++ )
     {
@@ -183,5 +279,23 @@ void bli_fmm_cntl
           bli_cntl_sub_node( 0, cntl ),
           thread
         );
+    }
+
+    if(paramsA.reindex)
+    {
+        for (int i = 0; i < fmm->m_tilde * fmm->k_tilde; i++)
+        {
+            bli_obj_free(&(paramsA.parts[i]));
+        }
+        free(paramsA.parts);
+    }
+
+    if (paramsB.reindex)
+    {
+        for (int i = 0; i < fmm->k_tilde * fmm->n_tilde; i++)
+        {
+            bli_obj_free(&(paramsB.parts[i]));
+        }
+        free(paramsB.parts);
     }
 }
