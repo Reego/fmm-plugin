@@ -13,7 +13,9 @@ enum DriverFlag {
     REP_FLAG,
     VAR_FLAG,
     FMM_FLAG,
-    RANDOM_FLAG
+    RANDOM_FLAG,
+    REINDEX_A_FLAG,
+    REINDEX_B_FLAG,
 };
 
 void my_mm(obj_t* A, obj_t* B, obj_t* C, dim_t m, dim_t n, dim_t k) {
@@ -42,7 +44,7 @@ void my_mm(obj_t* A, obj_t* B, obj_t* C, dim_t m, dim_t n, dim_t k) {
     }
 }
 
-void run(dim_t m, dim_t n, dim_t k, int variant, fmm_t* fmm_, int nreps)
+void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm_, int nreps)
 {
     fmm_t fmm_o = new_fmm("classical.txt");
     fmm_t* fmm = &fmm_o;
@@ -95,7 +97,7 @@ void run(dim_t m, dim_t n, dim_t k, int variant, fmm_t* fmm_, int nreps)
         bli_copym( &C_ref, &C );
         bl_dgemm_beg = bl_clock();
         {
-            bli_strassen_ab_ex_ex( alpha, &A, &B, beta, &C, fmm, variant);
+            bli_fmm( alpha, &A, &B, beta, &C, fmm);
             // bli_strassen_ab( alpha, &A, &B, beta, &C);
         }
         bl_dgemm_time = bl_clock() - bl_dgemm_beg;
@@ -189,6 +191,8 @@ int main( int argc, char *argv[] )
 
     int nreps = 3;
     int variant = -1;
+    bool reindex_a = false;
+    bool reindex_b = false;
     bool randomize = false;
 
     enum DriverFlag current_flag = NONE;
@@ -205,6 +209,12 @@ int main( int argc, char *argv[] )
             case NONE:
                 if (arg[0] == '-') {
                     switch (arg[1]) {
+                        case 'a':
+                            current_flag = REINDEX_A_FLAG;
+                        break;
+                        case 'b':
+                            current_flag = REINDEX_B_FLAG;
+                        break;
                         case 'r':
                             current_flag = REP_FLAG;
                         break;
@@ -245,6 +255,12 @@ int main( int argc, char *argv[] )
                 }
                 continue;
             break;
+            case REINDEX_A_FLAG:
+                reindex_a = (arg[0] == '1');
+            break;
+            case REINDEX_B_FLAG:
+                reindex_b = (arg[0] == '1');
+            break;
             case REP_FLAG:
                 nreps = atoi(arg);
             break;
@@ -264,7 +280,8 @@ int main( int argc, char *argv[] )
     }
 
     printf("m %d\tn %d\tk %d\n", m, n, k);
-    printf("nreps %d \t variant %d\n\n", nreps, variant);
+    printf("nreps %d \t variant %d reindex_a %d reindex_b %d\n\n",
+        nreps, variant, reindex_a, reindex_b);
 
     fmm_t final_fmm = fmm_layers[0];
     for (int j = 1; j < num_layers; j++) {
@@ -281,7 +298,11 @@ int main( int argc, char *argv[] )
         fmm_shuffle_columns(&final_fmm);
     }
 
-    run(m, n, k, variant, &final_fmm, nreps);
+    final_fmm.reindex_a = reindex_a;
+    final_fmm.reindex_b = reindex_b;
+    final_fmm.variant = variant;
+
+    run(m, n, k, &final_fmm, nreps);
 
     free_fmm(&final_fmm);
 

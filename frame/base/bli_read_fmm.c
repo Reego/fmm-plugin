@@ -218,13 +218,17 @@ fmm_t nest_fmm(fmm_t* fmm_a, fmm_t* fmm_b) {
     fmm_rearrange(fmm.V, fmm.R, fmm_a->k_tilde, fmm_a->n_tilde, fmm_b->k_tilde, fmm_b->n_tilde);
     fmm_rearrange(fmm.W, fmm.R, fmm_a->m_tilde, fmm_a->n_tilde, fmm_b->m_tilde, fmm_b->n_tilde);
 
+    fmm.reindex_a = fmm_a->reindex_a;
+    fmm.reindex_b = fmm_a->reindex_b;
+    fmm.variant = fmm_a->variant;
+
     free_fmm(fmm_a);
     free_fmm(fmm_b);
 
     return fmm;
 }
 
-fmm_t new_fmm_ex(const char* file_name, int nest_level) {
+fmm_t new_fmm_ex(const char* file_name, int nest_level, int variant, bool reindex_a, bool reindex_b) {
 
     if (nest_level <= 1) {
 
@@ -281,17 +285,22 @@ fmm_t new_fmm_ex(const char* file_name, int nest_level) {
 
         fclose(fp);
 
+        fmm.reindex_a = reindex_a;
+        fmm.reindex_b = reindex_b;
+        fmm.variant = variant;
+
         return fmm;
     }
 
-    fmm_t fmm_a = new_fmm_ex(file_name, nest_level - 1);
-    fmm_t fmm_b = new_fmm_ex(file_name, 1);
-    return nest_fmm(&fmm_a, &fmm_b);
+    fmm_t fmm_a = new_fmm_ex(file_name, nest_level - 1, variant, reindex_a, reindex_b);
+    fmm_t fmm_b = new_fmm_ex(file_name, 1, variant, reindex_a, reindex_b);
+    fmm_t final_fmm = nest_fmm(&fmm_a, &fmm_b);
+
+    return final_fmm;
 }
 
 fmm_t new_fmm(const char* file_name) {
-
-    return new_fmm_ex(file_name, 1);
+    return new_fmm_ex(file_name, 1, -1, false, false);
 }
 
 void print_fmm(fmm_t* fmm) {

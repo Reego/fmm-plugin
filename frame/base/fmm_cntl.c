@@ -145,35 +145,13 @@ void bli_fmm_cntl
 
     init_part_offsets(row_off_C, col_off_C, part_m_C, part_n_C, m, n, fmm->m_tilde, fmm->n_tilde);
 
-    if (1)
-    {
-        paramsA.reindex = false;
-        paramsB.reindex = false;
-    }
-    else
-    {
-        // TODO
-        // generate partition matrices
+    paramsA.reindex = fmm->reindex_a;
+    paramsB.reindex = fmm->reindex_b;
 
-        paramsA.reindex = true;
-        paramsB.reindex = true;
 
+    if (paramsA.reindex)
+    {
         paramsA.parts = (obj_t*) malloc(fmm->m_tilde * fmm->k_tilde * sizeof(obj_t));
-        paramsB.parts = (obj_t*) malloc(fmm->k_tilde * fmm->n_tilde * sizeof(obj_t));
-
-        // obj_t atemp_local;
-
-        // // We always pass B^T to bli_l3_packm.
-        // bli_obj_alias_to( a, &atemp_local );
-        // if ( bli_obj_has_trans( a ) )
-        // {
-        //     bli_obj_set_onlytrans( BLIS_NO_TRANSPOSE, &atemp_local );
-        // }
-        // else
-        // {
-        //     bli_obj_induce_trans( &atemp_local );
-        // }
-
         for (int i = 0; i < fmm->m_tilde; i++)
         {
             for (int j = 0; j < fmm->k_tilde; j++)
@@ -207,7 +185,10 @@ void bli_fmm_cntl
                 // bli_printm( "\tmatrix 'atemp_local', initialized by columns:", &atemp_local, "%5.3f", "" );
             }
         }
-
+    }
+    
+    if (paramsB.reindex)
+    {
         obj_t btemp_local;
 
         // We always pass B^T to bli_l3_packm.

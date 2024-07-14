@@ -223,7 +223,7 @@ int test_bli_strassen_ex( int m, int n, int k, fmm_t* fmm )
     for ( i = 0; i < nrepeats; i ++ ) {
         bl_dgemm_beg = bl_clock();
         {
-            bli_strassen_ab_ex( alpha, &A, &B, beta, &C, fmm);
+            bli_fmm( alpha, &A, &B, beta, &C, fmm);
             // bli_strassen_ab( alpha, &A, &B, beta, &C);
         }
         bl_dgemm_time = bl_clock() - bl_dgemm_beg;
@@ -509,7 +509,7 @@ int test_bli_symm_strassen_ex( int m, int n, int k, fmm_t* fmm)
     return failed;
 }
 
-int run_gemm_tests(fmm_t* fmm, int* outputs)
+int run_gemm_tests(fmm_t* fmm, int* outputs, bool show_runs)
 {
     int failed = 0;
     int test_id = 0;
@@ -522,7 +522,8 @@ int run_gemm_tests(fmm_t* fmm, int* outputs)
             for (int n = START; n < END; n++) {
                 for (int k = START; k < END; k++) {
                     if (m + n + k <= LIMIT) {
-                        printf("\tRunning GEMM SMALL test %d\n", test_id++);
+                        if (show_runs) printf("\tRunning GEMM SMALL test %d\n", test_id);
+                        test_id++;
                         failed += test_bli_strassen_ex(m, n, k, fmm);
                     }
                 }
@@ -538,7 +539,8 @@ int run_gemm_tests(fmm_t* fmm, int* outputs)
             for (int n = START; n < END; n++) {
                 for (int k = START; k < END; k++) {
                     if (m + n + k <= LIMIT) {
-                        printf("\tRunning GEMM MEDIUM test %d\n", test_id++);
+                        if (show_runs) printf("\tRunning GEMM MEDIUM test %d\n", test_id);\
+                        test_id++;
                         failed += test_bli_strassen_ex(m, n, k, fmm);
                     }
                 }
@@ -554,7 +556,8 @@ int run_gemm_tests(fmm_t* fmm, int* outputs)
             for (int n = START; n < END; n++) {
                 for (int k = START; k < END; k++) {
                     if (m + n + k <= LIMIT) {
-                        printf("\tRunning GEMM LARGE test %d\n", test_id++);
+                        if (show_runs) printf("\tRunning GEMM LARGE test %d\n", test_id);
+                        test_id++;
                         failed += test_bli_strassen_ex(m, n, k, fmm);
                     }
                 }
@@ -626,24 +629,36 @@ int run_symm_tests(fmm_t* fmm, int* outputs)
 int main( int argc, char *argv[] )
 {
 
-    fmm_t fmm = new_fmm_ex("strassen.txt", 2);
+    fmm_t fmms[] = {
+        new_fmm_ex("strassen.txt", 2, -1, false, false),
+        new_fmm_ex("strassen.txt", 2, 0, false, false),
+        new_fmm_ex("strassen.txt", 2, 1, false, false),
+        new_fmm_ex("strassen.txt", 2, 2, false, false),
+        new_fmm_ex("strassen.txt", 2, 2, true, true)
+    };
 
-    int gemm_outputs[2];
-    // int symm_outputs[2];
+    for (int i = 0; i < sizeof(fmms) / sizeof(fmm_t); i++)
+    {
+        fmm_t fmm = fmms[i];
 
-    run_gemm_tests(&fmm, gemm_outputs);
-    // run_symm_tests(&fmm, symm_outputs);
+        int gemm_outputs[2];
+        // int symm_outputs[2];
 
-    int gemm_tests = gemm_outputs[1];
-    int gemm_passed = gemm_tests - gemm_outputs[0];
+        run_gemm_tests(&fmm, gemm_outputs, false);
+        // run_symm_tests(&fmm, symm_outputs);
 
-    // int symm_tests = symm_outputs[1];
-    // int symm_passed = symm_tests - symm_outputs[0];
+        int gemm_tests = gemm_outputs[1];
+        int gemm_passed = gemm_tests - gemm_outputs[0];
 
-    printf("\n\n=======================================\n");
-    printf("\nPassed %d out of %d tests total for GEMM.\n", gemm_passed, gemm_tests);
-    printf("\nFailed %d out of %d tests total for GEMM.\n", gemm_outputs[0], gemm_tests);
-    // printf("\nPassed %d out of %d tests total for SYMM.\n", symm_passed, symm_tests);
+        // int symm_tests = symm_outputs[1];
+        // int symm_passed = symm_tests - symm_outputs[0];
 
-    free_fmm(&fmm);
+        printf("\n\n=======================================\n");
+        printf("\nPassed %d out of %d tests total for FMM variant %d reindex A %d reindex B %d.\n",
+            gemm_passed, gemm_tests, fmm.variant, fmm.reindex_a, fmm.reindex_b);
+        printf("\nFailed %d out of %d tests total.\n", gemm_outputs[0], gemm_tests);
+        // printf("\nPassed %d out of %d tests total for SYMM.\n", symm_passed, symm_tests);
+
+        free_fmm(&fmm);
+    }
 }

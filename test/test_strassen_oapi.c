@@ -222,7 +222,7 @@ int test_bli_strassen_ex_ex( int m, int n, int k, int debug, fmm_t* fmm )
     for ( i = 0; i < nrepeats; i ++ ) {
         bl_dgemm_beg = bl_clock();
         {
-            bli_strassen_ab_ex( alpha, &A, &B, beta, &C, fmm);
+            bli_fmm( alpha, &A, &B, beta, &C, fmm);
             // bli_strassen_ab( alpha, &A, &B, beta, &C);
         }
         bl_dgemm_time = bl_clock() - bl_dgemm_beg;
@@ -300,7 +300,7 @@ int test_bli_strassen_ex_ex( int m, int n, int k, int debug, fmm_t* fmm )
 }
 
 int test_bli_strassen_ex(int m, int n, int k, int debug) {
-    fmm_t fmm = new_fmm_ex("classical.txt", 1);
+    fmm_t fmm = new_fmm_ex("classical.txt");
     int res = test_bli_strassen_ex_ex(m, n, k, debug, &fmm);
     free_fmm(&fmm);
     return res;
@@ -769,7 +769,7 @@ int main( int argc, char *argv[] )
 
     if (0) {
         
-        fmm_t fmm = new_fmm_ex("strassen.txt", 2);
+        fmm_t fmm = new_fmm_ex("strassen.txt", 2, -1, false, false);
         print_fmm(&fmm);
     
         return 0;

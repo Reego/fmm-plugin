@@ -146,17 +146,7 @@ void bli_l3_packb_fmm
 
 void do_fmm_test();
 
-void bli_strassen_ab_ex_ex( 
-        obj_t* alpha, 
-        obj_t* A, 
-        obj_t* B, 
-        obj_t* beta, 
-        obj_t* C,
-        fmm_t* fmm,
-        int variant
-        );
-
-void bli_strassen_ab_ex( 
+void bli_fmm( 
         obj_t* alpha, 
         obj_t* A, 
         obj_t* B, 
@@ -179,7 +169,7 @@ void bli_strassen_ab_symm( obj_t* alpha, obj_t* A, obj_t* B, obj_t* beta, obj_t*
 
 fmm_t new_fmm(const char* file_name);
 
-fmm_t new_fmm_ex(const char* file_name, int nest_level);
+fmm_t new_fmm_ex(const char* file_name, int nest_level, int variant, bool reindex_a, bool reindex_b);
 
 fmm_t nest_fmm(fmm_t* fmm_a, fmm_t* fmm_b);
 
