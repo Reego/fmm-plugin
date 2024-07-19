@@ -68,3 +68,31 @@ err_t PASTEMAC(plugin_register,BLIS_PNAME_INFIX)( PASTECH2(plugin,BLIS_PNAME_INF
 	return err;
 }
 
+double max_diff(obj_t* A, obj_t* B)
+{
+
+    const double TOLERANCE = 1E-10;
+
+    dim_t m = A->dim[0];
+    dim_t n = A->dim[1];
+
+    inc_t rsa = A->rs;
+    inc_t csa = A->cs;
+
+    inc_t rsb = B->rs;
+    inc_t csb = B->cs;
+
+    int    i, j;
+    double max = 0;
+    for ( i = 0; i < m; i ++ ) {
+        for ( j = 0; j < n; j ++ ) {
+            double a_element = ((double*)A->buffer)[i * rsa + j * csa];
+            double b_element = ((double*)B->buffer)[i * rsb + j * csb];
+
+            if (fabs(a_element - b_element) > max)
+                max = fabs(a_element - b_element);
+        }
+    }
+    return max;
+}
+
