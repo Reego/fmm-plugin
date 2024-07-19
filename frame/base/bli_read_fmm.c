@@ -27,6 +27,11 @@ int _cparts(fmm_t* fmm) {
     return fmm->m_tilde * fmm->n_tilde;
 }
 
+int _size(fmm_t* fmm) {
+    return fmm->m_tilde * fmm->n_tilde * fmm->k_tilde;
+}
+
+
 void fmm_rearrange(
     int* U,
     int R,

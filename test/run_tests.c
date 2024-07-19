@@ -116,7 +116,7 @@ int test_bli_strassen_ex( int m, int n, int k, fmm_t* fmm )
     inc_t rsB, csB;
 	side_t side;
 
-	obj_t A, B, C, C_ref, diffM;
+	obj_t A, B, C, C_ref, C_og, diffM;
 	obj_t* alpha;
 	obj_t* beta;
 
@@ -141,6 +141,7 @@ int test_bli_strassen_ex( int m, int n, int k, fmm_t* fmm )
 
     bli_obj_create( dt, m, n, 0, 0, &C );
     bli_obj_create( dt, m, n, 0, 0, &C_ref );
+    bli_obj_create( dt, m, n, 0, 0, &C_og );
     bli_obj_create( dt, m, n, 0, 0, &diffM );
 
 	bli_obj_create( dt, m, k, 0, 0, &A );
@@ -167,6 +168,7 @@ int test_bli_strassen_ex( int m, int n, int k, fmm_t* fmm )
     bli_setd( &BLIS_MINUS_ONE, &B );
 	bli_setm( &BLIS_ZERO, &C );
     bli_copym( &C, &C_ref );
+    bli_copym( &C, &C_og );
 
     void*  buf_A    = bli_obj_buffer_at_off( &A ); 
 	inc_t  rs_A     = bli_obj_row_stride( &A ); 
@@ -221,6 +223,10 @@ int test_bli_strassen_ex( int m, int n, int k, fmm_t* fmm )
 #endif
 
     for ( i = 0; i < nrepeats; i ++ ) {
+        if (i != 0)
+        {
+            bli_copym( &C_og, &C );
+        }
         bl_dgemm_beg = bl_clock();
         {
             bli_fmm( alpha, &A, &B, beta, &C, fmm);
@@ -236,6 +242,10 @@ int test_bli_strassen_ex( int m, int n, int k, fmm_t* fmm )
     }
 
     for ( i = 0; i < nrepeats; i ++ ) {
+        if (i != 0)
+        {
+            bli_copym( &C_og, &C_ref );
+        }
         ref_beg = bl_clock();
         {
             // bli_gemm( alpha, &A, &B, beta, &C_ref);
@@ -256,24 +266,26 @@ int test_bli_strassen_ex( int m, int n, int k, fmm_t* fmm )
 
     bli_obj_scalar_init_detached( dt, &norm );
 
-    bli_copym( &C_ref, &diffM );
+ //    bli_copym( &C_ref, &diffM );
 
-    bli_subm( &C, &diffM );
-	bli_normfm( &diffM, &norm );
-	bli_getsc( &norm, &resid, &junk );
+ //    bli_subm( &C, &diffM );
+	// bli_normfm( &diffM, &norm );
+	// bli_getsc( &norm, &resid, &junk );
+
+    resid = max_diff(&C, &C_ref);
 
     // Compute overall floating point operations.
     flops = ( m * n / ( 1000.0 * 1000.0 * 1000.0 ) ) * ( 2 * k );
 
     if (debug)
-        printf( "%5d\t %5d\t %5d\t %5.2lf\t %5.2lf\t %5.2g\t %5.2g\n",
-                m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid, resid_other );
+        printf( "%5d\t %5d\t %5d\t %5.2lf\t %5.2lf\t %5.2g\n",
+                m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid );
     else {
         if (resid > .0000001) {
             failed = 1;
             printf("\n\n");
-            printf( "--> %5d\t %5d\t %5d\t %5.2lf\t %5.2lf\t %5.2g\t %5.2g\n",
-                    m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid, resid_other );
+            printf( "--> %5d\t %5d\t %5d\t %5.2lf\t %5.2lf\t %5.2g\n",
+                    m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid );
             printf("\n\n");
         }
     }
@@ -309,7 +321,7 @@ int test_bli_symm_strassen_ex( int m, int n, int k, fmm_t* fmm)
     inc_t rsA, csA;
     inc_t rsB, csB;
 
-    obj_t A, B, C, C_ref, diffM;
+    obj_t A, B, C, C_ref, C_og, diffM;
     obj_t* alpha;
     obj_t* beta;
 
@@ -334,6 +346,7 @@ int test_bli_symm_strassen_ex( int m, int n, int k, fmm_t* fmm)
 
     bli_obj_create( dt, m, n, 0, 0, &C );
     bli_obj_create( dt, m, n, 0, 0, &C_ref );
+    bli_obj_create( dt, m, n, 0, 0, &C_og );
     bli_obj_create( dt, m, n, 0, 0, &diffM );
 
     bli_obj_create( dt, m, k, 0, 0, &A );
@@ -351,6 +364,7 @@ int test_bli_symm_strassen_ex( int m, int n, int k, fmm_t* fmm)
     bli_randm( &A );
     bli_randm( &C );
     bli_copym( &C, &C_ref );
+    bli_copym( &C, &C_og );
 
     bli_setm( &BLIS_ZERO, &A ); // ###
 
@@ -428,6 +442,10 @@ int test_bli_symm_strassen_ex( int m, int n, int k, fmm_t* fmm)
 #endif
 
     for ( i = 0; i < nrepeats; i ++ ) {
+        if (i != 0)
+        {
+            bli_copym( &C_og, &C );
+        }
         bl_dgemm_beg = bl_clock();
         {
             bli_strassen_ab_symm( alpha, &A, &B, beta, &C );
@@ -443,6 +461,10 @@ int test_bli_symm_strassen_ex( int m, int n, int k, fmm_t* fmm)
     }
 
     for ( i = 0; i < nrepeats; i ++ ) {
+        if (i != 0)
+        {
+            bli_copym( &C_og, &C_ref );
+        }
         ref_beg = bl_clock();
         {
             // bli_gemm( alpha, &A, &B, beta, &C_ref);

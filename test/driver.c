@@ -151,6 +151,8 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     bli_normfm( &diffM, &norm );
     bli_getsc( &norm, &resid, &junk );
 
+    resid = max_diff(&C, &C_ref);
+
     // Compute overall floating point operations.
     flops = ( m * n / ( 1000.0 * 1000.0 * 1000.0 ) ) * ( 2 * k );
 
