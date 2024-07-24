@@ -118,7 +118,13 @@ void bli_fmm_cntl
     paramsA.m_max = m; paramsA.n_max = k;
     paramsB.m_max = n; paramsB.n_max = k; // B gets transposed
     paramsC.m_max = m; paramsC.n_max = n;
+    paramsA.local = &a_local;
+    paramsB.local = &b_local;
     paramsC.local = &c_local;
+
+    paramsA.nsplit = _aparts(fmm);
+    paramsB.nsplit = _bparts(fmm);
+    paramsC.nsplit = _cparts(fmm);
 
     func_t *pack_ukr;
 
@@ -219,40 +225,41 @@ void bli_fmm_cntl
         }
     }
 
+    paramsA.off_m = row_off_A;
+    paramsA.off_n = col_off_A;
+    paramsA.part_m = part_m_A;
+    paramsA.part_n = part_n_A;
+    // paramsA.coef = fmm->U;
+
+    paramsB.off_m = row_off_B;
+    paramsB.off_n = col_off_B;
+    paramsB.part_m = part_m_B;
+    paramsB.part_n = part_n_B;
+    // paramsB.coef = fmm->V;
+
+    paramsC.off_m = row_off_C;
+    paramsC.off_n = col_off_C;
+    paramsC.part_m = part_m_C;
+    paramsC.part_n = part_n_C;
+    // paramsC.coef = fmm->W;
+
     for ( dim_t r = 0; r < fmm->R; r++ )
     {
-        paramsA.nsplit = 0;
-        paramsB.nsplit = 0;
-        paramsC.nsplit = 0;
+        paramsA.r = r;
+        paramsB.r = r;
+        paramsC.r = r;
 
         for (dim_t isplits = 0; isplits < fmm->m_tilde * fmm->k_tilde; isplits++)
         {
-            ((float*)paramsA.coef)[paramsA.nsplit] = __U(isplits, r);
-            paramsA.off_m[paramsA.nsplit] = row_off_A[isplits];
-            paramsA.off_n[paramsA.nsplit] = col_off_A[isplits];
-            paramsA.part_m[paramsA.nsplit] = part_m_A[isplits];
-            paramsA.part_n[paramsA.nsplit] = part_n_A[isplits];
-            paramsA.nsplit++;
+            ((float*)paramsA.coef)[isplits] = __U(isplits, r);
         }
-
         for (dim_t isplits = 0; isplits < fmm->k_tilde * fmm->n_tilde; isplits++)
         {
-            ((float*)paramsB.coef)[paramsB.nsplit] = __V(isplits, r);
-            paramsB.off_m[paramsB.nsplit] = row_off_B[isplits];
-            paramsB.off_n[paramsB.nsplit] = col_off_B[isplits];
-            paramsB.part_m[paramsB.nsplit] = part_m_B[isplits];
-            paramsB.part_n[paramsB.nsplit] = part_n_B[isplits];
-            paramsB.nsplit++;
+            ((float*)paramsB.coef)[isplits] = __V(isplits, r);
         }
-
         for (dim_t isplits = 0; isplits < fmm->m_tilde * fmm->n_tilde; isplits++)
         {
-            ((float*)paramsC.coef)[paramsC.nsplit] = __W(isplits, r);
-            paramsC.off_m[paramsC.nsplit] = row_off_C[isplits];
-            paramsC.off_n[paramsC.nsplit] = col_off_C[isplits];
-            paramsC.part_m[paramsC.nsplit] = part_m_C[isplits];
-            paramsC.part_n[paramsC.nsplit] = part_n_C[isplits];
-            paramsC.nsplit++;
+            ((float*)paramsC.coef)[isplits] = __W(isplits, r);
         }
 
         bli_l3_int

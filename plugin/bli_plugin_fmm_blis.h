@@ -84,14 +84,15 @@ typedef struct fmm_params_t
 {
     // int id;
 	// number of partitions to pack or accumulate
-	dim_t nsplit;
+	int r;
+    int nsplit;
 
 	// coefficient for each partition (in the computational datatype)
-	float coef[ MAX_NUM_PARTS ];
+	float coef[MAX_NUM_PARTS];
 
     // size for each partition (in the computational datatype)
-    dim_t part_m[ MAX_NUM_PARTS ];
-    dim_t part_n[ MAX_NUM_PARTS ];
+    dim_t* part_m;
+    dim_t* part_n;
 
     bool reindex;
 
@@ -100,7 +101,8 @@ typedef struct fmm_params_t
 	// offsets of each partition relative to the parent matrix
 	// (when packing, m is the "short micro-panel dimension (m or n)", and n
 	// is the "long micro-panel dimension (k)")
-	inc_t off_m[ MAX_NUM_PARTS ], off_n[ MAX_NUM_PARTS ];
+	inc_t* off_m;
+    inc_t* off_n;
 
 	// also keep track of the total matrix size so that we can detect sub-matrix
 	// edge cases
@@ -223,5 +225,105 @@ void PASTEMAC4(plugin_init,BLIS_PNAME_INFIX,_,config,BLIS_REF_SUFFIX)( PASTECH2(
 INSERT_GENTCONF
 
 BLIS_EXPORT_BLIS err_t PASTEMAC(plugin_register,BLIS_PNAME_INFIX)( PASTECH2(plugin,BLIS_PNAME_INFIX,_params) );
+
+
+
+//
+// STATIC pack routines
+//
+
+#undef  GENTFUNC
+#define GENTFUNC( ctype, ch, opname) \
+\
+void PASTECH(ch,opname) \
+     ( \
+             struc_t strucc, \
+             diag_t  diagc, \
+             uplo_t  uploc, \
+             conj_t  conjc, \
+             pack_t  schema, \
+             bool    invdiag, \
+             dim_t   panel_dim, \
+             dim_t   panel_len, \
+             dim_t   panel_dim_max, \
+             dim_t   panel_len_max, \
+             dim_t   panel_dim_off, \
+             dim_t   panel_len_off, \
+             dim_t   panel_bcast, \
+       const void*   kappa, \
+       const void*   c, inc_t incc, inc_t ldc, \
+             void*   p,             inc_t ldp, \
+       const void*   params_, \
+       const cntx_t* cntx  \
+     ); \
+
+INSERT_GENTFUNC_BASIC(CLASSICAL_PACK_A_0)
+INSERT_GENTFUNC_BASIC(CLASSICAL_PACK_A_1)
+INSERT_GENTFUNC_BASIC(CLASSICAL_PACK_A_2)
+INSERT_GENTFUNC_BASIC(CLASSICAL_PACK_A_3)
+INSERT_GENTFUNC_BASIC(CLASSICAL_PACK_A_4)
+INSERT_GENTFUNC_BASIC(CLASSICAL_PACK_A_5)
+INSERT_GENTFUNC_BASIC(CLASSICAL_PACK_A_6)
+INSERT_GENTFUNC_BASIC(CLASSICAL_PACK_A_7)
+
+INSERT_GENTFUNC_BASIC(CLASSICAL_PACK_B_0)
+INSERT_GENTFUNC_BASIC(CLASSICAL_PACK_B_1)
+INSERT_GENTFUNC_BASIC(CLASSICAL_PACK_B_2)
+INSERT_GENTFUNC_BASIC(CLASSICAL_PACK_B_3)
+INSERT_GENTFUNC_BASIC(CLASSICAL_PACK_B_4)
+INSERT_GENTFUNC_BASIC(CLASSICAL_PACK_B_5)
+INSERT_GENTFUNC_BASIC(CLASSICAL_PACK_B_6)
+INSERT_GENTFUNC_BASIC(CLASSICAL_PACK_B_7)
+
+INSERT_GENTFUNC_BASIC(FMM_222_PACK_A_0)
+INSERT_GENTFUNC_BASIC(FMM_222_PACK_A_1)
+INSERT_GENTFUNC_BASIC(FMM_222_PACK_A_2)
+INSERT_GENTFUNC_BASIC(FMM_222_PACK_A_3)
+INSERT_GENTFUNC_BASIC(FMM_222_PACK_A_4)
+INSERT_GENTFUNC_BASIC(FMM_222_PACK_A_5)
+INSERT_GENTFUNC_BASIC(FMM_222_PACK_A_6)
+
+INSERT_GENTFUNC_BASIC(FMM_222_PACK_B_0)
+INSERT_GENTFUNC_BASIC(FMM_222_PACK_B_1)
+INSERT_GENTFUNC_BASIC(FMM_222_PACK_B_2)
+INSERT_GENTFUNC_BASIC(FMM_222_PACK_B_3)
+INSERT_GENTFUNC_BASIC(FMM_222_PACK_B_4)
+INSERT_GENTFUNC_BASIC(FMM_222_PACK_B_5)
+INSERT_GENTFUNC_BASIC(FMM_222_PACK_B_6)
+
+#undef  GENTFUNC
+#define GENTFUNC( ctype, ch, opname) \
+\
+void PASTECH(ch,opname) \
+     ( \
+             dim_t  m, \
+             dim_t  n, \
+             dim_t  k, \
+       const void*  alpha, \
+       const void*  a, \
+       const void*  b, \
+       const void*  beta, \
+             void*  c, inc_t rs_c, inc_t cs_c, \
+             auxinfo_t* data, \
+       const cntx_t*    cntx  \
+     ); \
+
+
+INSERT_GENTFUNC_BASIC(CLASSICAL_UKR_0)
+INSERT_GENTFUNC_BASIC(CLASSICAL_UKR_1)
+INSERT_GENTFUNC_BASIC(CLASSICAL_UKR_2)
+INSERT_GENTFUNC_BASIC(CLASSICAL_UKR_3)
+INSERT_GENTFUNC_BASIC(CLASSICAL_UKR_4)
+INSERT_GENTFUNC_BASIC(CLASSICAL_UKR_5)
+INSERT_GENTFUNC_BASIC(CLASSICAL_UKR_6)
+INSERT_GENTFUNC_BASIC(CLASSICAL_UKR_7)
+
+INSERT_GENTFUNC_BASIC(FMM_222_UKR_0)
+INSERT_GENTFUNC_BASIC(FMM_222_UKR_1)
+INSERT_GENTFUNC_BASIC(FMM_222_UKR_2)
+INSERT_GENTFUNC_BASIC(FMM_222_UKR_3)
+INSERT_GENTFUNC_BASIC(FMM_222_UKR_4)
+INSERT_GENTFUNC_BASIC(FMM_222_UKR_5)
+INSERT_GENTFUNC_BASIC(FMM_222_UKR_6)
 
 #endif

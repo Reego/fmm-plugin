@@ -26,7 +26,7 @@ extern "C" {
 #elif defined(__ANDROID__)
 #define BL_OS_ANDROID 1
 #elif defined(__linux__)
-#define BL_OS_LINUX 1
+#define BL_OS_LINUX 1 
 #elif defined(__bgq__)
 #define BL_OS_BGQ 1
 #elif defined(__bg__)
@@ -144,6 +144,36 @@ void bli_l3_packb_fmm
              thrinfo_t* thread_par
      );
 
+void bli_l3_packb_fmm_static
+     (
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  c,
+       const cntx_t* cntx,
+       const cntl_t* cntl,
+             thrinfo_t* thread_par
+     );
+
+void bli_l3_packa_fmm_static
+     (
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  c,
+       const cntx_t* cntx,
+       const cntl_t* cntl,
+             thrinfo_t* thread_par
+     );
+
+void bli_gemm_ker_var2_fmm_static
+     (
+       const obj_t*     a,
+       const obj_t*     b,
+       const obj_t*     c,
+       const cntx_t*    cntx,
+       const cntl_t*    cntl,
+             thrinfo_t* thread_par
+     );
+
 void do_fmm_test();
 
 void bli_fmm( 
@@ -180,8 +210,6 @@ void fmm_shuffle_columns(fmm_t* fmm);
 void print_fmm(fmm_t* fmm);
 
 void free_fmm(fmm_t* fmm);
-
-void test_bli_strassen( int m, int n, int k );
 
 void bli_fmm_cntl
      (

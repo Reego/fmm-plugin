@@ -85,11 +85,11 @@ void shuffle(int *array, size_t n)
     }
 }
 
-void reshuffle_columns(int* order, float* U, int m, int k, int R) {
+void reshuffle_columns(int* order, int* U, int m, int k, int R) {
 
-    float* buffer = (float*) malloc(sizeof(float) * m * k * R);
+    int* buffer = (int*) malloc(sizeof(int) * m * k * R);
 
-    memcpy(U, buffer, sizeof(float) * m * k * R);
+    memcpy(U, buffer, sizeof(int) * m * k * R);
 
     for (int r = 0; r < R; r++)
     {
@@ -136,8 +136,8 @@ void nest_fmm_helper(
             for (int row_B_U = 0; row_B_U < b_parts; row_B_U++) {
                 for (int col_B_U = 0; col_B_U < fmm_b->R; col_B_U++) {
 
-                    float a_element = buffer_a[row_A_U * fmm_a->R + col_A_U];
-                    float b_element = buffer_b[row_B_U * fmm_b->R + col_B_U];
+                    int a_element = buffer_a[row_A_U * fmm_a->R + col_A_U];
+                    int b_element = buffer_b[row_B_U * fmm_b->R + col_B_U];
 
                     int dest_row = row_A_U * b_parts + row_B_U;
                     int dest_col = col_A_U * fmm_b->R + col_B_U;

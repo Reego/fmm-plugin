@@ -5,23 +5,35 @@
 #define __V( i,j ) fmm->V[ (i)*fmm->R + (j) ]
 #define __W( i,j ) fmm->W[ (i)*fmm->R + (j) ]
 
-void bli_packm_blk_var1_fmm
+void bli_packm_blk_var1_fmm_static
      (
        const obj_t*     c,
              obj_t*     p,
        const cntx_t*    cntx,
        const cntl_t*    cntl,
-             thrinfo_t* thread
+             thrinfo_t* thread,
+             packm_ker_ft packm_ker_cast
      )
 {
-
     // Extract various fields from the control tree.
     pack_t schema  = bli_packm_def_cntl_pack_schema( cntl );
     bool   invdiag = bli_packm_def_cntl_does_invert_diag( cntl );
     bool   revifup = bli_packm_def_cntl_rev_iter_if_upper( cntl );
     bool   reviflo = bli_packm_def_cntl_rev_iter_if_lower( cntl );
 
-    void* buffer = p->buffer;
+    // Every thread initializes p and determines the size of memory block
+    // needed (which gets embedded into the otherwise "blank" mem_t entry
+    // in the control tree node). Return early if no packing is required.
+    // If the requested size is zero, then we don't need to do any allocation.
+    siz_t size_p = bli_packm_init( c, p, cntl );
+    if ( size_p == 0 )
+        return;
+
+    // Update the buffer address in p to point to the buffer associated
+    // with the mem_t entry acquired from the memory broker (now cached in
+    // the control tree node).
+    void* buffer = bli_packm_alloc( size_p, cntl, thread );
+    bli_obj_set_buffer( buffer, p );
 
     // Check parameters.
     if ( bli_error_checking_is_enabled() )
@@ -61,7 +73,6 @@ void bli_packm_blk_var1_fmm
     char*   kappa_cast     = bli_packm_scalar( &kappa_local, p );
 
     // Query the datatype-specific function pointer from the control tree.
-    packm_ker_ft packm_ker_cast = bli_packm_def_cntl_ukr( cntl );
     const void*  params         = bli_packm_def_cntl_ukr_params( cntl );
 
     // Compute the total number of iterations we'll need.
@@ -249,9 +260,86 @@ void bli_packm_blk_var1_fmm
     }
 }
 
+
 // void bli_l3_packa_fmm <-- can be found in old commits
 
-void bli_l3_packb_fmm
+void bli_l3_packa_fmm_static
+     (
+       const obj_t*  a,
+       const obj_t*  b,
+       const obj_t*  c,
+       const cntx_t* cntx,
+       const cntl_t* cntl,
+             thrinfo_t* thread_par
+     )
+{
+	obj_t a_local, a_pack;
+
+	bli_obj_alias_to( a, &a_local );
+	if ( bli_obj_has_trans( a ) )
+	{
+		bli_obj_induce_trans( &a_local );
+		bli_obj_set_onlytrans( BLIS_NO_TRANSPOSE, &a_local );
+	}
+
+	// Pack matrix A according to the control tree node.
+
+	fmm_params_t* paramsA = (fmm_params_t*) bli_packm_def_cntl_ukr_params( cntl );
+
+	packm_ker_ft packm_kers[] = {
+		// dSTRASSEN_PACK_A_0,
+		// dSTRASSEN_PACK_A_1,
+		// dSTRASSEN_PACK_A_2,
+		// dSTRASSEN_PACK_A_3,
+		// dSTRASSEN_PACK_A_4,
+		// dSTRASSEN_PACK_A_5,
+		// dSTRASSEN_PACK_A_6,
+  //       dSTRASSEN_PACK_A_7
+        dFMM_222_PACK_A_0,
+        dFMM_222_PACK_A_1,
+        dFMM_222_PACK_A_2,
+        dFMM_222_PACK_A_3,
+        dFMM_222_PACK_A_4,
+        dFMM_222_PACK_A_5,
+        dFMM_222_PACK_A_6
+	};
+
+	packm_ker_ft packm_ker_cast = packm_kers[paramsA->r];
+
+	{ // bli_packm_int
+
+		// Barrier so that we know threads are done with previous computation
+		// with the same packing buffer before starting to pack.
+		thrinfo_t* thread = bli_thrinfo_sub_node( 0, thread_par );
+		bli_thrinfo_barrier( thread );
+
+		bli_packm_blk_var1_fmm_static
+		(
+		  &a_local,
+	  	  &a_pack,
+		  cntx,
+		  cntl,
+		  thread,
+		  packm_ker_cast
+		);
+
+		// Barrier so that packing is done before computation.
+		bli_thrinfo_barrier( thread );
+	}
+
+	// Proceed with execution using packed matrix A.
+	bli_l3_int
+	(
+	  &a_pack,
+	  b,
+	  c,
+	  cntx,
+	  bli_cntl_sub_node( 0, cntl ),
+	  bli_thrinfo_sub_node( 0, thread_par )
+	);
+}
+
+void bli_l3_packb_fmm_static
      (
        const obj_t*  a,
        const obj_t*  b,
@@ -262,187 +350,66 @@ void bli_l3_packb_fmm
      )
 {
 
-    // fmm_cntl
+	obj_t bt_local, bt_pack;
 
-    thrinfo_t* thread = bli_thrinfo_sub_node( 0, thread_par );
+	// We always pass B^T to bli_l3_packm.
+	bli_obj_alias_to( b, &bt_local );
+	if ( bli_obj_has_trans( b ) )
+	{
+		bli_obj_set_onlytrans( BLIS_NO_TRANSPOSE, &bt_local );
+	}
+	else
+	{
+		bli_obj_induce_trans( &bt_local );
+	}
 
-    obj_t a0, b0, c0;
-    obj_t a_local, b_local, c_local;
+	fmm_params_t* paramsB = (fmm_params_t*) bli_packm_def_cntl_ukr_params( cntl );
 
-    bli_obj_alias_to( a, &a0 );
-    bli_obj_alias_to( b, &b0 );
-    bli_obj_alias_to( c, &c0 );
+	packm_ker_ft packm_kers[] = {
+		dFMM_222_PACK_B_0,
+        dFMM_222_PACK_B_1,
+        dFMM_222_PACK_B_2,
+        dFMM_222_PACK_B_3,
+        dFMM_222_PACK_B_4,
+        dFMM_222_PACK_B_5,
+        dFMM_222_PACK_B_6
+	};
 
-    const void*  params = bli_packm_def_cntl_ukr_params( cntl );
-    fmm_gemm_cntl_alt_t* fmm_gemm_cntl = (fmm_gemm_cntl_alt_t*) params;
-
-    gemm_cntl_t* gemm_cntl = (gemm_cntl_t*) &fmm_gemm_cntl->gemm_cntl;
-
-    fmm_t* fmm = fmm_gemm_cntl->fmm_cntl.fmm;
-
-    fmm_params_t paramsA;
-    fmm_params_t paramsB;
-    fmm_params_t paramsC;
-
-    paramsA.reindex = false;
-    paramsB.reindex = false;
-
-    // TODO
-    dim_t m = bli_obj_length( c );
-    dim_t n = bli_obj_width( c );
-    dim_t k = bli_obj_width( a );
-
-    bl_fmm_acquire_spart (fmm->m_tilde, fmm->k_tilde, 0, 0, a, &a0 );
-    bl_fmm_acquire_spart (fmm->k_tilde, fmm->n_tilde, 0, 0, b, &b0 );
-    bl_fmm_acquire_spart (fmm->k_tilde, fmm->n_tilde, 0, 0, c, &c0 );
-
-    bli_obj_alias_submatrix( &a0, &a_local );
-    bli_obj_alias_submatrix( &b0, &b_local );
-    bli_obj_alias_submatrix( &c0, &c_local );
-
-    paramsA.m_max = m; paramsA.n_max = k;
-    paramsB.m_max = n; paramsB.n_max = k;
-    paramsC.m_max = m; paramsC.n_max = n;
-    paramsC.local = &c_local;
-
-    paramsA.nsplit = _aparts(fmm);
-    paramsB.nsplit = _bparts(fmm);
-    paramsC.nsplit = _cparts(fmm);
-
-    func_t *pack_ukr;
-
-    bli_gemm_cntl_set_packa_params((const void *) &paramsA, gemm_cntl);
-    bli_gemm_cntl_set_packb_params((const void *) &paramsB, gemm_cntl);
-    bli_gemm_cntl_set_params((const void *) &paramsC, gemm_cntl);
-
-    dim_t row_off_A[fmm->m_tilde * fmm->k_tilde], col_off_A[fmm->m_tilde * fmm->k_tilde];
-    dim_t part_m_A[fmm->m_tilde * fmm->k_tilde], part_n_A[fmm->m_tilde * fmm->k_tilde];
-
-    init_part_offsets(row_off_A, col_off_A, part_m_A, part_n_A, m, k, fmm->m_tilde, fmm->k_tilde);
-
-    dim_t row_off_B[fmm->k_tilde * fmm->n_tilde], col_off_B[fmm->k_tilde * fmm->n_tilde];
-    dim_t part_m_B[fmm->k_tilde * fmm->n_tilde], part_n_B[fmm->k_tilde * fmm->n_tilde];
-
-    // need to stop order of the col_off, row_off and part_n and part_m pairs because
-    // B gets transposed before packing.
-    init_part_offsets(col_off_B, row_off_B, part_n_B, part_m_B, k, n, fmm->k_tilde, fmm->n_tilde); // since B is transposed... something idk.
-
-    dim_t row_off_C[fmm->m_tilde * fmm->n_tilde], col_off_C[fmm->m_tilde * fmm->n_tilde];
-    dim_t part_m_C[fmm->m_tilde * fmm->n_tilde], part_n_C[fmm->m_tilde * fmm->n_tilde];
-
-    init_part_offsets(row_off_C, col_off_C, part_m_C, part_n_C, m, n, fmm->m_tilde, fmm->n_tilde);
-
-    paramsA.off_m = row_off_A;
-    paramsA.off_n = col_off_A;
-    paramsA.part_m = part_m_A;
-    paramsA.part_n = part_n_A;
-    // paramsA.coef = fmm->U;
-
-    paramsB.off_m = row_off_B;
-    paramsB.off_n = col_off_B;
-    paramsB.part_m = part_m_B;
-    paramsB.part_n = part_n_B;
-    // paramsB.coef = fmm->V;
-
-    paramsC.off_m = row_off_C;
-    paramsC.off_n = col_off_C;
-    paramsC.part_m = part_m_C;
-    paramsC.part_n = part_n_C;
-    // paramsC.coef = fmm->W;
-
-    // end fmm_cntl
+	packm_ker_ft packm_ker_cast = packm_kers[paramsB->r];
 
 
-    obj_t bt_local;
+	{ // bli_packm_int
 
-    // We always pass B^T to bli_l3_packm.
-    bli_obj_alias_to( &b_local, &bt_local );
-    if ( bli_obj_has_trans( &b_local ) )
-    {
-        bli_obj_set_onlytrans( BLIS_NO_TRANSPOSE, &bt_local );
-    }
-    else
-    {
-        bli_obj_induce_trans( &bt_local );
-    }
+		// Barrier so that we know threads are done with previous computation
+		// with the same packing buffer before starting to pack.
+		thrinfo_t* thread = bli_thrinfo_sub_node( 0, thread_par );
+		bli_thrinfo_barrier( thread );
 
-    // prepare packing buffer
-    obj_t* bt_pack = malloc(fmm->R * sizeof(obj_t));
+		bli_packm_blk_var1_fmm_static
+		(
+		  &bt_local,
+		  &bt_pack,
+		  cntx,
+		  cntl,
+		  thread,
+		  packm_ker_cast
+		);
 
-    siz_t size_p = bli_packm_init( &bt_local, bt_pack, cntl ) * fmm->R; 
+		// Barrier so that packing is done before computation.
+		bli_thrinfo_barrier( thread );
+	}
 
-    for (int r = 1; r < fmm->R; r++) {
-        bli_packm_init(&bt_local, &bt_pack[r], cntl);
-    }   
+	// Transpose packed object back to B.
+	bli_obj_induce_trans( &bt_pack );
 
-    // lcm of 8 and fmm->R -> todo
-    size_p = (size_p % (8*fmm->R)) + size_p;
-    if ( size_p == 0 )
-        return;
-    void* buffer = bli_packm_alloc( size_p, cntl, thread );
-
-    siz_t offset = size_p / fmm->R;
-
-    // pack
-    for (int r = 0; r < fmm->R; r++) {
-
-        void* offset_buffer = ((char*) buffer) + offset * r;
-        bli_obj_set_buffer( offset_buffer, &bt_pack[r] );
-
-        if (r == 0) bli_init_once();
-
-        // Barrier so that we know threads are done with previous computation
-        // with the same packing buffer before starting to pack.
-        thrinfo_t* thread = bli_thrinfo_sub_node( 0, thread_par );
-        bli_thrinfo_barrier( thread );
-
-        paramsB.r = r;
-
-        for (dim_t isplits = 0; isplits < fmm->k_tilde * fmm->n_tilde; isplits++)
-        {
-            ((float*)paramsB.coef)[isplits] = __V(isplits, r);
-        }
-
-        bli_packm_blk_var1_fmm
-        (
-          &bt_local,
-          &bt_pack[r],
-          cntx,
-          cntl,
-          thread
-        );
-
-        // Barrier so that packing is done before computation.
-        bli_thrinfo_barrier( thread );
-    }
-
-    // Proceed with execution using packed matrix B.
-    for (int r = 0; r < fmm->R; r++) {
-
-        for (dim_t isplits = 0; isplits < fmm->m_tilde * fmm->k_tilde; isplits++)
-        {
-            ((float*)paramsA.coef)[isplits] = __U(isplits, r);
-        }
-        for (dim_t isplits = 0; isplits < fmm->m_tilde * fmm->n_tilde; isplits++)
-        {
-            ((float*)paramsC.coef)[isplits] = __W(isplits, r);
-        }
-
-        bli_obj_induce_trans( &bt_pack[r] );
-
-        paramsA.r = r;
-        paramsC.r = r;
-
-        bli_l3_int
-        (
-          &a_local,
-          &bt_pack[r],
-          &c_local,
-          cntx,
-          bli_cntl_sub_node( 0, cntl ),
-          thread
-        );
-    }
-
-    bli_packm_def_cntl_set_ukr_params(params, cntl);
+	// Proceed with execution using packed matrix B.
+	bli_l3_int
+	(
+	  a,
+	  &bt_pack,
+	  c,
+	  cntx,
+	  bli_cntl_sub_node( 0, cntl ),
+	  bli_thrinfo_sub_node( 0, thread_par )
+	);
 }

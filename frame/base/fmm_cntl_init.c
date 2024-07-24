@@ -455,6 +455,10 @@ void bli_fmm_gemm_cntl_init_var
     if ( !bli_obj_equals( beta, &BLIS_ONE ) )
         bli_obj_scalar_apply_scalar( beta, c );
 
+
+    bool use_dynamic = true;
+
+
     void_fp macro_kernel_fp = family == BLIS_GEMM ||
                               family == BLIS_HEMM ||
                               family == BLIS_SYMM ? bli_gemm_ker_var2 :
@@ -477,6 +481,12 @@ void bli_fmm_gemm_cntl_init_var
                                      bli_obj_is_lower( b ) ? bli_trmm_rl_ker_var2 : bli_trmm_ru_ker_var2 :
                               NULL; // Should never happen
 #endif
+
+
+    if (macro_kernel_fp == bli_gemm_ker_var2 && !use_dynamic)
+    {
+        macro_kernel_fp = bli_gemm_ker_var2_fmm_static;
+    }
 
     const num_t         dt_a          = bli_obj_dt( a );
     const num_t         dt_b          = bli_obj_dt( b );
@@ -589,49 +599,10 @@ void bli_fmm_gemm_cntl_init_var
     // micro-kernel and its parameters.
     bli_gemm_var_cntl_set_params( &cntl->ker, ( cntl_t* )&cntl->ker );\
 
-    if (variant == 4) {
-        bli_cntl_init_node
-        (
-          bli_fmm_cntl,
-          fmm_cntl
-        );
-        bli_cntl_attach_sub_node
-        (
-          trmm_r ? BLIS_THREAD_NONE : BLIS_THREAD_NC,
-          ( cntl_t* )&cntl->ker,
-          ( cntl_t* )fmm_cntl
-        );
 
-        // Create a node for packing matrix A.
-        bli_packm_def_cntl_init_node
-        (
-          bli_l3_packa, // pack the left-hand operand
-          dt_a,
-          dt_ap,
-          dt_comp,
-          packm_a_ukr,
-          mr_def / mr_scale,
-          mr_pack,
-          mr_bcast,
-          mr_scale,
-          kr_def,
-          FALSE,
-          FALSE,
-          FALSE,
-          schema_a,
-          BLIS_BUFFER_FOR_A_BLOCK,
-          &cntl->pack_a
-        );
-        bli_cntl_attach_sub_node
-        (
-          BLIS_THREAD_NONE,
-          ( cntl_t* )fmm_cntl,
-          ( cntl_t* )&cntl->pack_a
-        );
-    }
-    else { // pre-microkernel else
-
-        // Create a node for packing matrix A.
+    // Create a node for packing matrix A.
+    if (use_dynamic)
+    {
         bli_packm_def_cntl_init_node
         (
           bli_l3_packa, // pack the left-hand operand
@@ -658,76 +629,58 @@ void bli_fmm_gemm_cntl_init_var
           ( cntl_t* )&cntl->pack_a
         );
     }
-
-    if (variant == 3) { // 2.5 reordering
-        bli_cntl_init_node
+    else
+    {
+        bli_packm_def_cntl_init_node
         (
-          bli_fmm_cntl,
-          fmm_cntl
-        );
-        bli_cntl_attach_sub_node
-        (
-          trmm_r ? BLIS_THREAD_NONE : BLIS_THREAD_NC,
-          ( cntl_t* )&cntl->pack_a,
-          ( cntl_t* )fmm_cntl
-        );
-        // Create a node for partitioning the m dimension by MC.
-        bli_part_cntl_init_node
-        (
-          bli_gemm_blk_var1,
+          bli_l3_packa_fmm_static, // pack the left-hand operand
+          dt_a,
+          dt_ap,
           dt_comp,
-          mc_def / mc_scale,
-          mc_max / mc_scale,
-          mc_scale,
+          packm_a_ukr,
           mr_def / mr_scale,
+          mr_pack,
+          mr_bcast,
           mr_scale,
-          a_lo_tri ? BLIS_BWD : BLIS_FWD,
-          bli_obj_is_triangular( a ) || bli_obj_is_upper_or_lower( c ),
-          &cntl->part_ic
+          kr_def,
+          FALSE,
+          FALSE,
+          FALSE,
+          schema_a,
+          BLIS_BUFFER_FOR_A_BLOCK,
+          &cntl->pack_a
         );
         bli_cntl_attach_sub_node
         (
-          trmm_r ? BLIS_THREAD_MC | BLIS_THREAD_NC : BLIS_THREAD_MC,
-          ( cntl_t* )fmm_cntl,
-          ( cntl_t* )&cntl->part_ic
-        );
-    }
-    else { // 2.5 else
-
-        // Create a node for partitioning the m dimension by MC.
-        bli_part_cntl_init_node
-        (
-          bli_gemm_blk_var1,
-          dt_comp,
-          mc_def / mc_scale,
-          mc_max / mc_scale,
-          mc_scale,
-          mr_def / mr_scale,
-          mr_scale,
-          a_lo_tri ? BLIS_BWD : BLIS_FWD,
-          bli_obj_is_triangular( a ) || bli_obj_is_upper_or_lower( c ),
-          &cntl->part_ic
-        );
-        bli_cntl_attach_sub_node
-        (
-          trmm_r ? BLIS_THREAD_MC | BLIS_THREAD_NC : BLIS_THREAD_MC,
-          ( cntl_t* )&cntl->pack_a,
-          ( cntl_t* )&cntl->part_ic
+          BLIS_THREAD_NONE,
+          ( cntl_t* )&cntl->ker,
+          ( cntl_t* )&cntl->pack_a
         );
     }
 
-    if (variant == 2) { // post pack B reordering
-        bli_cntl_init_node
-        (
-          bli_fmm_cntl,
-          fmm_cntl
-        );
-        bli_cntl_attach_sub_node
-        (
-          trmm_r ? BLIS_THREAD_NONE : BLIS_THREAD_NC,
-          ( cntl_t* )&cntl->part_ic,
-          ( cntl_t* )fmm_cntl
-        );
+    // Create a node for partitioning the m dimension by MC.
+    bli_part_cntl_init_node
+    (
+      bli_gemm_blk_var1,
+      dt_comp,
+      mc_def / mc_scale,
+      mc_max / mc_scale,
+      mc_scale,
+      mr_def / mr_scale,
+      mr_scale,
+      a_lo_tri ? BLIS_BWD : BLIS_FWD,
+      bli_obj_is_triangular( a ) || bli_obj_is_upper_or_lower( c ),
+      &cntl->part_ic
+    );
+    bli_cntl_attach_sub_node
+    (
+      trmm_r ? BLIS_THREAD_MC | BLIS_THREAD_NC : BLIS_THREAD_MC,
+      ( cntl_t* )&cntl->pack_a,
+      ( cntl_t* )&cntl->part_ic
+    );
+
+    if (use_dynamic)
+    {
         // Create a node for packing matrix B.
         bli_packm_def_cntl_init_node
         (
@@ -751,15 +704,16 @@ void bli_fmm_gemm_cntl_init_var
         bli_cntl_attach_sub_node
         (
           BLIS_THREAD_NONE,
-          ( cntl_t* )fmm_cntl,
+          ( cntl_t* )&cntl->part_ic,
           ( cntl_t* )&cntl->pack_b
         );
     }
-    else { // post pack B else
+    else // use bli_l3_packb_fmm_static instead
+    {
         // Create a node for packing matrix B.
         bli_packm_def_cntl_init_node
         (
-          bli_l3_packb, // pack the right-hand operand
+          bli_l3_packb_fmm_static, // pack the right-hand operand
           dt_b,
           dt_bp,
           dt_comp,
