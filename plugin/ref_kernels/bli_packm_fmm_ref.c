@@ -33,9 +33,227 @@
 
 */
 
+
+//         int whole_i = bli_min(i, num_row_part_whole);\
+//         int partial_i = bli_min(row_tilde - num_row_part_whole, i - whole_i);\
+// \
+//         int whole_j = bli_min(j, num_col_part_whole);\
+//         int partial_j = bli_min(col_tilde - num_col_part_whole, j - whole_j);\
+// \
+//         if (i < num_row_part_whole)\
+//             part_md = row_part_size + 1;\
+//         else\
+//             part_md= row_part_size;\
+// \
+//         if (j < num_col_part_whole)\
+//             part_nd = col_part_size + 1;\
+//         else\
+//             part_nd = col_part_size;\
+// \
+//         off_md = whole_i * (row_part_size + 1) + partial_i * row_part_size;\
+// \
+//         off_kd = whole_j * (col_part_size + 1) + partial_j * col_part_size;\
+//         \
+//         if (ldp == 8)\
+//         {\
+//         	inc_t temp0;\
+//         	temp0 = off_kd;\
+//         	off_kd = off_md;\
+//         	off_md = temp0;\
+//         	\
+//         	dim_t temp1 = part_md;\
+//         	part_md = part_nd;\
+//         	part_nd = temp1;\
+//         }\
+
+
 #include "blis.h"
 #include <complex.h>
 #include STRINGIFY_INT(../PASTEMAC(plugin,BLIS_PNAME_INFIX).h)
+
+#undef  GENTFUNC
+#define GENTFUNC( ctype, ch, opname, arch, suf ) \
+\
+void PASTEMAC3(ch,opname,arch,suf) \
+     ( \
+             struc_t strucc, \
+             diag_t  diagc, \
+             uplo_t  uploc, \
+             conj_t  conjc, \
+             pack_t  schema, \
+             bool    invdiag, \
+             dim_t   panel_dim, \
+             dim_t   panel_len, \
+             dim_t   panel_dim_max, \
+             dim_t   panel_len_max, \
+             dim_t   panel_dim_off, \
+             dim_t   panel_len_off, \
+             dim_t   panel_bcast, \
+       const void*   kappa, \
+       const void*   c, inc_t incc, inc_t ldc, \
+             void*   p,             inc_t ldp, \
+       const void*   params_, \
+       const cntx_t* cntx  \
+     ) \
+{ \
+	const num_t dt = PASTEMAC(ch,type); \
+\
+	fmm_params_t*    params    = ( fmm_params_t* )params_; \
+	packm_cxk_ker_ft packm_def = bli_cntx_get_ukr_dt( dt, BLIS_PACKM_KER, cntx ); \
+\
+	dim_t nsplit = params->nsplit; \
+	float* restrict coef = ( float* )params->coef; \
+	float* coeff = (float*) params->coef;\
+	dim_t m_max = params->m_max; \
+	dim_t k_max = params->n_max; \
+\
+	/* The first sub-matrix also needs a coefficient and offset computation. */ \
+	ctype kappa_cast, lambda; \
+	kappa_cast = *( ctype* )kappa; \
+	PASTEMAC3(ch, s, ch, scal2s)( kappa_cast, coef[ 0 ], lambda ); \
+\
+	inc_t off_md = 0; \
+	inc_t off_kd = 0; \
+	\
+	dim_t part_md = 0; \
+	dim_t part_nd = 0; \
+	\
+	\
+	\
+	\
+	dim_t row_tilde = params->m_tilde; \
+	dim_t col_tilde = params->n_tilde; \
+	int num_row_part_whole = m_max % row_tilde; \
+    if (m_max % row_tilde == 0) num_row_part_whole = 0; \
+    dim_t row_part_size = m_max / row_tilde; \
+\
+    int num_col_part_whole = k_max % col_tilde; \
+    if (k_max % col_tilde == 0) num_col_part_whole = 0; \
+    dim_t col_part_size = k_max / col_tilde; \
+	\
+	\
+	\
+	\
+\
+	const ctype* restrict c_use = ( ctype* )c + off_md * incc + off_kd * ldc; \
+	      ctype* restrict p_use = ( ctype* )p; \
+\
+	/* Check if we need to shrink the micro-panel due to unequal partitioning. */ \
+	dim_t panel_dim_use = bli_min( panel_dim, m_max - ( panel_dim_off + off_md ) ); \
+	dim_t panel_len_use = bli_min( panel_len, k_max - ( panel_len_off + off_kd ) ); \
+\
+	\
+	/* Call the usual packing kernel to pack the first sub-matrix and take care zeroing out the edges. */ \
+\
+	packm_def \
+	( \
+	  conjc, \
+	  schema, \
+	  panel_dim, \
+	  panel_dim_max, \
+	  1, \
+	  panel_len, \
+	  panel_len_max, \
+	  &lambda, \
+	  c_use, incc, ldc, \
+	  p_use,       ldp, \
+	  params, \
+	  cntx \
+	); \
+	\
+	for (int i = 0; i < row_tilde; i++) {\
+        for (int j = 0; j < col_tilde; j++) {\
+        \
+        dim_t s = j + i * col_tilde;\
+        if (s == 0) continue;\
+        PASTEMAC3(ch, s, ch, scal2s)( kappa_cast, coef[ s ], lambda );\
+\
+		if (PASTECH2(bli_,ch,eq0)(lambda)) continue;\
+        \
+        \
+        \
+\
+        int whole_i = bli_min(i, num_row_part_whole);\
+        int partial_i = bli_min(row_tilde - num_row_part_whole, i - whole_i);\
+\
+        int whole_j = bli_min(j, num_col_part_whole);\
+        int partial_j = bli_min(col_tilde - num_col_part_whole, j - whole_j);\
+\
+        if (i < num_row_part_whole)\
+            part_md = row_part_size + 1;\
+        else\
+            part_md= row_part_size;\
+\
+        if (j < num_col_part_whole)\
+            part_nd = col_part_size + 1;\
+        else\
+            part_nd = col_part_size;\
+\
+        off_md = whole_i * (row_part_size + 1) + partial_i * row_part_size;\
+\
+        off_kd = whole_j * (col_part_size + 1) + partial_j * col_part_size;\
+        \
+        if (ldp == 8)\
+        {\
+        	inc_t temp0;\
+        	temp0 = off_kd;\
+        	off_kd = off_md;\
+        	off_md = temp0;\
+        	\
+        	dim_t temp1 = part_md;\
+        	part_md = part_nd;\
+        	part_nd = temp1;\
+        }\
+    \
+        \
+        \
+\
+		\
+		\
+		\
+		\
+\
+		inc_t total_off_m = panel_dim_off + off_md;\
+		inc_t total_off_n = panel_len_off + off_kd;\
+\
+				/* Check if we need to shrink the micro-panel due to unequal partitioning. */ \
+		panel_dim_use = bli_min(panel_dim, part_md - panel_dim_off ); \
+		panel_len_use = bli_min(panel_len, part_nd - panel_len_off ); \
+\
+		if (!params->reindex) {\
+			c_use = ( ctype* )c + off_md * incc + off_kd * ldc; \
+			p_use = ( ctype* )p; \
+		}\
+		else {\
+			ldc = bli_obj_col_stride( &(params->parts[s]) );\
+			incc = bli_obj_row_stride( &(params->parts[s]) );\
+			c_use = ( ctype* )params->parts[s].buffer + panel_dim_off * incc + panel_len_off * ldc; \
+			p_use = ( ctype* )p; \
+		}\
+		\
+		/* For subsequence sub-matrices, we don't need to re-zero any edges, just accumulate. */ \
+		if(1){\
+			for ( dim_t j = 0; j < panel_len_use; j++ ) \
+		{ \
+			for ( dim_t i = 0; i < panel_dim_use; i++ ) \
+			for ( dim_t d = 0; d < panel_bcast; d++ ) \
+			{ \
+				PASTEMAC(ch,axpys)( lambda, c_use[ i*incc ], p_use[ i*panel_bcast + d ] ); \
+			} \
+			c_use += ldc; \
+			p_use += ldp; \
+		} \
+		}\
+		else {\
+			PASTEMAC(ch,axpbys_mxn)( panel_dim_use, panel_len_use, \
+		                         &lambda, c_use, incc, ldc, \
+		                         &BLIS_ONE, p_use, 1, ldp ); \
+		}\
+	}} \
+	\
+}
+
+INSERT_GENTFUNC_BASIC( packm_fmm, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX )
 
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, arch, suf ) \
@@ -156,26 +374,64 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	\
 }
 
-INSERT_GENTFUNC_BASIC( packm_fmm, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX )
+INSERT_GENTFUNC_BASIC( packm_fmm_m, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX )
 
 
 
 #define ADD( ctype, ch, split, coef ) \
-\
+	{\
+		int j = split % col_tilde;\
+		int i = (split - j) / col_tilde;\
 		PASTEMAC3(ch, s, ch, scal2s)( kappa_cast, coef, lambda );\
 \
 		if (!PASTECH2(bli_,ch,eq0)(lambda))\
 		{\
 \
-			inc_t total_off_m = panel_dim_off + off_m[split];\
-			inc_t total_off_n = panel_len_off + off_k[split];\
+		int whole_i = bli_min(i, num_row_part_whole);\
+        int partial_i = bli_min(row_tilde - num_row_part_whole, i - whole_i);\
+\
+        int whole_j = bli_min(j, num_col_part_whole);\
+        int partial_j = bli_min(col_tilde - num_col_part_whole, j - whole_j);\
+\
+        if (i < num_row_part_whole)\
+            part_md = row_part_size + 1;\
+        else\
+            part_md= row_part_size;\
+\
+        if (j < num_col_part_whole)\
+            part_nd = col_part_size + 1;\
+        else\
+            part_nd = col_part_size;\
+\
+\
+        off_md = whole_i * (row_part_size + 1) + partial_i * row_part_size;\
+\
+        off_kd = whole_j * (col_part_size + 1) + partial_j * col_part_size;\
+        \
+        if (ldp == 8)\
+        {\
+        	inc_t temp0;\
+        	temp0 = off_kd;\
+        	off_kd = off_md;\
+        	off_md = temp0;\
+        	\
+        	dim_t temp1 = part_md;\
+        	part_md = part_nd;\
+        	part_nd = temp1;\
+        }\
+    \
+        \
+        \
+\
+			inc_t total_off_m = panel_dim_off + off_md;\
+			inc_t total_off_n = panel_len_off + off_kd;\
 	\
 					/* Check if we need to shrink the micro-panel due to unequal partitioning. */ \
-			panel_dim_use = bli_min(panel_dim, part_m[split] - panel_dim_off ); \
-			panel_len_use = bli_min(panel_len, part_n[split] - panel_len_off ); \
+			panel_dim_use = bli_min(panel_dim, part_md - panel_dim_off ); \
+			panel_len_use = bli_min(panel_len, part_nd - panel_len_off ); \
 	\
 			if (!params->reindex) {\
-				c_use = ( ctype* )c + off_m[split] * incc + off_k[split] * ldc; \
+				c_use = ( ctype* )c + off_md * incc + off_kd * ldc; \
 				p_use = ( ctype* )p; \
 			}\
 			else {\
@@ -186,17 +442,26 @@ INSERT_GENTFUNC_BASIC( packm_fmm, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX )
 			}\
 			\
 			/* For subsequence sub-matrices, we don't need to re-zero any edges, just accumulate. */ \
-			for ( dim_t j = 0; j < panel_len_use; j++ ) \
+			if(1)\
+			{for ( dim_t j = 0; j < panel_len_use; j++ ) \
 			{ \
 				for ( dim_t i = 0; i < panel_dim_use; i++ ) \
 				for ( dim_t d = 0; d < panel_bcast; d++ ) \
 				{ \
+					if(0)printf("%5.2g \n", c_use[i*incc]);\
 					PASTEMAC(ch,axpys)( lambda, c_use[ i*incc ], p_use[ i*panel_bcast + d ] ); \
 				} \
 				c_use += ldc; \
 				p_use += ldp; \
 			}\
+			}\
+			else {\
+				PASTEMAC(ch,axpbys_mxn)( panel_dim_use, panel_len_use, \
+		                         &lambda, c_use, incc, ldc, \
+		                         &BLIS_ONE, p_use, 1, ldp ); \
+			}\
 		}\
+	}\
 
 
 #define FILL_ZERO(ctype, ch, split, coef) \
@@ -205,33 +470,86 @@ INSERT_GENTFUNC_BASIC( packm_fmm, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX )
 	fmm_params_t*    params    = ( fmm_params_t* )params_; \
 	packm_cxk_ker_ft packm_def = bli_cntx_get_ukr_dt( dt, BLIS_PACKM_KER, cntx ); \
 \
-	dim_t nsplit = params->nsplit; \
-	inc_t* restrict off_m = params->off_m; \
-	inc_t* restrict off_k = params->off_n; \
-	dim_t* restrict part_m = params->part_m;\
-	dim_t* restrict part_n = params->part_n; \
 	dim_t m_max = params->m_max, k_max = params->n_max; \
 \
 	/* The first sub-matrix also needs a coefficient and offset computation. */ \
 	ctype kappa_cast, lambda; \
 	kappa_cast = *( ctype* )kappa; \
-	PASTEMAC3(ch, s, ch,scal2s)( kappa_cast, coef, lambda ); \
+	PASTEMAC3(ch, s, ch, scal2s)( kappa_cast, coef, lambda ); \
+	\
+	inc_t off_md = 0; \
+	inc_t off_kd = 0; \
+	\
+	dim_t part_md = 0; \
+	dim_t part_nd = 0; \
+	\
+	\
+	\
+	\
+	dim_t row_tilde = params->m_tilde; \
+	dim_t col_tilde = params->n_tilde; \
+	int num_row_part_whole = m_max % row_tilde; \
+    if (m_max % row_tilde == 0) num_row_part_whole = 0; \
+    dim_t row_part_size = m_max / row_tilde; \
 \
-	const ctype* restrict c_use = ( ctype* )c + off_m[ split ] * incc + off_k[ split ] * ldc; \
+    int num_col_part_whole = k_max % col_tilde; \
+    if (k_max % col_tilde == 0) num_col_part_whole = 0; \
+    dim_t col_part_size = k_max / col_tilde; \
+    \
+    \
+    \
+	int j = split % col_tilde;\
+	int i = (split - j) / col_tilde;\
+\
+	int whole_i = bli_min(i, num_row_part_whole);\
+    int partial_i = bli_min(row_tilde - num_row_part_whole, i - whole_i);\
+\
+    int whole_j = bli_min(j, num_col_part_whole);\
+    int partial_j = bli_min(col_tilde - num_col_part_whole, j - whole_j);\
+\
+    if (i < num_row_part_whole)\
+        part_md = row_part_size + 1;\
+    else\
+        part_md= row_part_size;\
+\
+    if (j < num_col_part_whole)\
+        part_nd = col_part_size + 1;\
+    else\
+        part_nd = col_part_size;\
+\
+\
+    off_md = whole_i * (row_part_size + 1) + partial_i * row_part_size;\
+\
+    off_kd = whole_j * (col_part_size + 1) + partial_j * col_part_size;\
+    \
+    if (ldp == 8)\
+    {\
+    	inc_t temp0;\
+    	temp0 = off_kd;\
+    	off_kd = off_md;\
+    	off_md = temp0;\
+    	\
+    	dim_t temp1 = part_md;\
+    	part_md = part_nd;\
+    	part_nd = temp1;\
+    }\
+\
+    \
+    \
+\
+	inc_t total_off_m = panel_dim_off + off_md;\
+	inc_t total_off_n = panel_len_off + off_kd;\
+\
+			/* Check if we need to shrink the micro-panel due to unequal partitioning. */ \
+	dim_t panel_dim_use = bli_min(panel_dim, part_md - panel_dim_off ); \
+	dim_t panel_len_use = bli_min(panel_len, part_nd - panel_len_off ); \
+	\
+\
+	const ctype* restrict c_use = ( ctype* )c + off_md * incc + off_kd * ldc; \
 	      ctype* restrict p_use = ( ctype* )p; \
 \
 	/* Check if we need to shrink the micro-panel due to unequal partitioning. */ \
-	dim_t panel_dim_use = bli_min( panel_dim, m_max - ( panel_dim_off + off_m[ split ] ) ); \
-	dim_t panel_len_use = bli_min( panel_len, k_max - ( panel_len_off + off_k[ split ] ) ); \
-	inc_t ldc_prime = bli_obj_col_stride( &(params->parts[split]) );\
-	inc_t incc_prime = bli_obj_row_stride( &(params->parts[split]) );\
-	inc_t ldc_prev = ldc;\
-	inc_t incc_prev = incc;\
-	if (params->reindex) {\
-		incc = incc_prime;\
-		ldc = ldc_prime;\
-		c_use = ( ctype* )params->parts[split].buffer + panel_dim_off * incc + panel_len_off * ldc;\
-	}\
+	if (0) printf("%d %d %5.2g\n", panel_dim_use, panel_len_use, lambda);\
 	packm_def \
 	( \
 	  conjc, \
@@ -305,7 +623,7 @@ INSERT_GENTFUNC_BASIC(FMM_222_PACK_A_4, 0, 1, 1, 1)
 INSERT_GENTFUNC_BASIC(FMM_222_PACK_A_5, 0, -1, 2, 1)
 INSERT_GENTFUNC_BASIC(FMM_222_PACK_A_6, 1, 1, 3, -1)
 
-INSERT_GENTFUNC_BASIC(FMM_222_PACK_B_0, 0, 1, 0, 1)
+INSERT_GENTFUNC_BASIC(FMM_222_PACK_B_0, 0, 1, 3, 1)
 INSERT_GENTFUNC_BASIC(FMM_222_PACK_B_1, 0, 1, 0, 0)
 INSERT_GENTFUNC_BASIC(FMM_222_PACK_B_2, 1, 1, 3, -1)
 INSERT_GENTFUNC_BASIC(FMM_222_PACK_B_3, 0, -1, 2, 1)

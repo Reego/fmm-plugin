@@ -148,11 +148,11 @@ void bli_fmm_cntl_init_pushb
     const dim_t         nc_def        = bli_cntx_get_blksz_def_dt( dt_comp, BLIS_NC, cntx );
     const dim_t         nc_max        = bli_cntx_get_blksz_max_dt( dt_comp, BLIS_NC, cntx );
           dim_t         nc_scale      = 1;
-          // dim_t         nc_scale      = 2;   
+                        nc_scale      = 2;   
     const dim_t         kc_def        = bli_cntx_get_blksz_def_dt( dt_comp, BLIS_KC, cntx );
     const dim_t         kc_max        = bli_cntx_get_blksz_max_dt( dt_comp, BLIS_KC, cntx );
           dim_t         kc_scale      = 1;
-          // dim_t         kc_scale      = 2;
+                        kc_scale      = 1;
 
 
     if ( im == BLIS_1M )
@@ -456,7 +456,7 @@ void bli_fmm_gemm_cntl_init_var
         bli_obj_scalar_apply_scalar( beta, c );
 
 
-    bool use_dynamic = true;
+    bool use_static = false;
 
 
     void_fp macro_kernel_fp = family == BLIS_GEMM ||
@@ -483,7 +483,7 @@ void bli_fmm_gemm_cntl_init_var
 #endif
 
 
-    if (macro_kernel_fp == bli_gemm_ker_var2 && !use_dynamic)
+    if (macro_kernel_fp == bli_gemm_ker_var2 && use_static)
     {
         macro_kernel_fp = bli_gemm_ker_var2_fmm_static;
     }
@@ -515,7 +515,7 @@ void bli_fmm_gemm_cntl_init_var
           dim_t         mc_scale      = 1;
     const dim_t         nc_def        = bli_cntx_get_blksz_def_dt( dt_comp, BLIS_NC, cntx );
     const dim_t         nc_max        = bli_cntx_get_blksz_max_dt( dt_comp, BLIS_NC, cntx );
-          dim_t         nc_scale      = 1;
+          dim_t         nc_scale      = 2;
     const dim_t         kc_def        = bli_cntx_get_blksz_def_dt( dt_comp, BLIS_KC, cntx );
     const dim_t         kc_max        = bli_cntx_get_blksz_max_dt( dt_comp, BLIS_KC, cntx );
           dim_t         kc_scale      = 1;
@@ -601,7 +601,7 @@ void bli_fmm_gemm_cntl_init_var
 
 
     // Create a node for packing matrix A.
-    if (use_dynamic)
+    if (!use_static)
     {
         bli_packm_def_cntl_init_node
         (
@@ -679,7 +679,7 @@ void bli_fmm_gemm_cntl_init_var
       ( cntl_t* )&cntl->part_ic
     );
 
-    if (use_dynamic)
+    if (!use_static)
     {
         // Create a node for packing matrix B.
         bli_packm_def_cntl_init_node

@@ -126,6 +126,13 @@ void bli_fmm_cntl
     paramsB.nsplit = _bparts(fmm);
     paramsC.nsplit = _cparts(fmm);
 
+    paramsA.m_tilde = fmm->m_tilde;
+    paramsA.n_tilde = fmm->k_tilde;
+    paramsB.m_tilde = fmm->k_tilde;
+    paramsB.n_tilde = fmm->n_tilde;
+    paramsC.m_tilde = fmm->m_tilde;
+    paramsC.n_tilde = fmm->n_tilde;
+
     func_t *pack_ukr;
 
     // bli_gemm_cntl_set_packa_params((const void *) &paramsB, gemm_cntl);
@@ -142,7 +149,7 @@ void bli_fmm_cntl
     dim_t row_off_B[fmm->k_tilde * fmm->n_tilde], col_off_B[fmm->k_tilde * fmm->n_tilde];
     dim_t part_m_B[fmm->k_tilde * fmm->n_tilde], part_n_B[fmm->k_tilde * fmm->n_tilde];
 
-    // need to stop order of the col_off, row_off and part_n and part_m pairs because
+    // need to swap order of the col_off, row_off and part_n and part_m pairs because
     // B gets transposed before packing.
     init_part_offsets(col_off_B, row_off_B, part_n_B, part_m_B, k, n, fmm->k_tilde, fmm->n_tilde); // since B is transposed... something idk.
 

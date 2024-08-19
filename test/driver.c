@@ -58,7 +58,7 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     inc_t rsB, csB;
     side_t side;
 
-    obj_t A, B, C, C_ref, diffM;
+    obj_t A, B, C, C_ref, C_reset, diffM;
     obj_t* alpha;
     obj_t* beta;
 
@@ -79,6 +79,7 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
 
     bli_obj_create( dt, m, n, 0, 0, &C );
     bli_obj_create( dt, m, n, 0, 0, &C_ref );
+    bli_obj_create( dt, m, n, 0, 0, &C_reset );
     bli_obj_create( dt, m, n, 0, 0, &diffM );
 
     bli_obj_create( dt, m, k, 0, 0, &A );
@@ -92,11 +93,22 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     bli_randm( &A );
     bli_randm( &C );
     bli_copym( &C, &C_ref );
+    bli_copym( &C, &C_reset );
+
+    // ref
+    {
+        ref_beg = bl_clock();
+        {
+            bli_gemm( alpha, &A, &B, beta, &C_ref);
+            // my_mm(&A, &B, &C_ref, m, n, k);
+        }
+        ref_rectime = bl_clock() - ref_beg;
+    }
 
     if (fmm == 0)
     {
         for ( i = 0; i < nreps; i ++ ) {
-            bli_copym( &C_ref, &C );
+            bli_copym( &C_reset, &C );
             bl_dgemm_beg = bl_clock();
             {
                 bli_gemm( alpha, &A, &B, beta, &C);
@@ -114,7 +126,7 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     else
     {
         for ( i = 0; i < nreps; i ++ ) {
-            bli_copym( &C_ref, &C );
+            bli_copym( &C_reset, &C );
             bl_dgemm_beg = bl_clock();
             {
                 bli_fmm( alpha, &A, &B, beta, &C, fmm);
@@ -127,16 +139,6 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
                 bl_dgemm_rectime = bl_dgemm_time < bl_dgemm_rectime ? bl_dgemm_time : bl_dgemm_rectime;
             }
         }
-    }
-
-    // ref
-    {
-        ref_beg = bl_clock();
-        {
-            bli_gemm( alpha, &A, &B, beta, &C_ref);
-            // my_mm(&A, &B, &C_ref, m, n, k);
-        }
-        ref_rectime = bl_clock() - ref_beg;
     }
 
     double        resid;
@@ -164,6 +166,7 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     bli_obj_free( &B );
     bli_obj_free( &C );
     bli_obj_free( &C_ref );
+    bli_obj_free( &C_reset );
     bli_obj_free( &diffM );
 
     return failed;

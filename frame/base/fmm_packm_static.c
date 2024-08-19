@@ -295,6 +295,14 @@ void bli_l3_packa_fmm_static
 		// dSTRASSEN_PACK_A_5,
 		// dSTRASSEN_PACK_A_6,
   //       dSTRASSEN_PACK_A_7
+        // dCLASSICAL_PACK_A_0,
+        // dCLASSICAL_PACK_A_1,
+        // dCLASSICAL_PACK_A_2,
+        // dCLASSICAL_PACK_A_3,
+        // dCLASSICAL_PACK_A_4,
+        // dCLASSICAL_PACK_A_5,
+        // dCLASSICAL_PACK_A_6,
+        // dCLASSICAL_PACK_A_7
         dFMM_222_PACK_A_0,
         dFMM_222_PACK_A_1,
         dFMM_222_PACK_A_2,
@@ -366,6 +374,14 @@ void bli_l3_packb_fmm_static
 	fmm_params_t* paramsB = (fmm_params_t*) bli_packm_def_cntl_ukr_params( cntl );
 
 	packm_ker_ft packm_kers[] = {
+        // dCLASSICAL_PACK_B_0,
+        // dCLASSICAL_PACK_B_1,
+        // dCLASSICAL_PACK_B_2,
+        // dCLASSICAL_PACK_B_3,
+        // dCLASSICAL_PACK_B_4,
+        // dCLASSICAL_PACK_B_5,
+        // dCLASSICAL_PACK_B_6,
+        // dCLASSICAL_PACK_B_7
 		dFMM_222_PACK_B_0,
         dFMM_222_PACK_B_1,
         dFMM_222_PACK_B_2,

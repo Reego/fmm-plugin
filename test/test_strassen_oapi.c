@@ -310,12 +310,12 @@ int test_bli_strassen(int m, int n, int k, int debug) {
 int main( int argc, char *argv[] )
 {
 
-    fmm_t fmm = new_fmm_ex("strassen.txt", 1, 0, false, false);
+    fmm_t fmm = new_fmm_ex("222.txt", 1, 0, false, false);
 
     int m, n, k;
-    m = 3;
-    n = 3;
-    k = 3;
+    m = 2;
+    n = 2;
+    k = 2;
 
     printf("\n\n\n");
 

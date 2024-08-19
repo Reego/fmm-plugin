@@ -170,6 +170,14 @@ void bli_gemm_ker_var2_fmm_static
 	fmm_params_t* paramsC = (fmm_params_t*) params;
 
 	gemm_ukr_ft gemm_ukrs[] = {
+		// dCLASSICAL_UKR_0,
+		// dCLASSICAL_UKR_1,
+		// dCLASSICAL_UKR_2,
+		// dCLASSICAL_UKR_3,
+		// dCLASSICAL_UKR_4,
+		// dCLASSICAL_UKR_5,
+		// dCLASSICAL_UKR_6,
+		// dCLASSICAL_UKR_7
 		dFMM_222_UKR_0,
 		dFMM_222_UKR_1,
 		dFMM_222_UKR_2,

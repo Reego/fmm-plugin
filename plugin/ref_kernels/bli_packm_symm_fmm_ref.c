@@ -33,15 +33,6 @@
 
 */
 
-//  ctype* cc = (ctype*) c_use;\
-// 	printf("\n\nMATRIX CCC: %5.3f\n", lambda2);\
-// 	for (dim_t g = 0; g < panel_dim_use; g++) {\
-// 		printf("\n");\
-// 		for (dim_t i = 0; i < panel_len_use; i++) {\
-// 			printf("%5.3f ", c_use[i*ldc + g*incc]);\
-// 		}\
-// 	}
-
 #include "blis.h"
 #include <complex.h>
 #include STRINGIFY_INT(../PASTEMAC(plugin,BLIS_PNAME_INFIX).h)

@@ -107,6 +107,7 @@ typedef struct fmm_params_t
 	// also keep track of the total matrix size so that we can detect sub-matrix
 	// edge cases
 	dim_t m_max, n_max;
+    dim_t m_tilde, n_tilde;
 
     //
     obj_t* local;
