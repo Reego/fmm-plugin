@@ -148,7 +148,7 @@ void bli_fmm_cntl_init_pushb
     const dim_t         nc_def        = bli_cntx_get_blksz_def_dt( dt_comp, BLIS_NC, cntx );
     const dim_t         nc_max        = bli_cntx_get_blksz_max_dt( dt_comp, BLIS_NC, cntx );
           dim_t         nc_scale      = 1;
-                        nc_scale      = 2;   
+                        nc_scale      = 1;   
     const dim_t         kc_def        = bli_cntx_get_blksz_def_dt( dt_comp, BLIS_KC, cntx );
     const dim_t         kc_max        = bli_cntx_get_blksz_max_dt( dt_comp, BLIS_KC, cntx );
           dim_t         kc_scale      = 1;
@@ -515,7 +515,7 @@ void bli_fmm_gemm_cntl_init_var
           dim_t         mc_scale      = 1;
     const dim_t         nc_def        = bli_cntx_get_blksz_def_dt( dt_comp, BLIS_NC, cntx );
     const dim_t         nc_max        = bli_cntx_get_blksz_max_dt( dt_comp, BLIS_NC, cntx );
-          dim_t         nc_scale      = 2;
+          dim_t         nc_scale      = 1;
     const dim_t         kc_def        = bli_cntx_get_blksz_def_dt( dt_comp, BLIS_KC, cntx );
     const dim_t         kc_max        = bli_cntx_get_blksz_max_dt( dt_comp, BLIS_KC, cntx );
           dim_t         kc_scale      = 1;
