@@ -37,6 +37,18 @@
 #define BLIS_PLUGIN_FMM_H
 
 #include "blis.h"
+#include <time.h>
+
+/*
+ * The timer functions are copied directly from BLIS 0.2.0
+ *
+ */
+static double gtod_ref_time_sec = 0.0;
+
+
+double _bl_clock_helper();
+
+double _bl_clock();
 
 //
 // Parameters passed to the plugin registration and initialization
@@ -44,6 +56,8 @@
 //
 
 // Use global kernel id variables instead of passing by argument
+
+extern double TIMES[];
 
 extern siz_t FMM_BLIS_PACK_UKR;
 extern siz_t FMM_BLIS_PACK_UKR_SYMM;
@@ -326,5 +340,18 @@ INSERT_GENTFUNC_BASIC(FMM_222_UKR_3)
 INSERT_GENTFUNC_BASIC(FMM_222_UKR_4)
 INSERT_GENTFUNC_BASIC(FMM_222_UKR_5)
 INSERT_GENTFUNC_BASIC(FMM_222_UKR_6)
+
+void bli_daxpys_mxn(
+    const dim_t m,
+    const dim_t n0,
+    double* restrict alpha,
+    double* restrict x,
+    const inc_t rs_x0,
+    const inc_t cs_x0,
+    double* restrict beta,
+    double* restrict y,
+    const inc_t rs_y0,
+    const inc_t cs_y0
+    );
 
 #endif

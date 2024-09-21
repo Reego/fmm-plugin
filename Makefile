@@ -46,6 +46,7 @@ FRAME_CC_SRC= 	frame/util/bli_fmm_util.c \
 				frame/base/fmm_packm_static.c \
 				frame/base/bli_read_fmm.c \
 				frame/base/fmm_macro_ker_static.c \
+				frame/base/misc.c \
 
 # KERNEL_SRC=     plugin/ref_kernels/bli_packm_fmm_ref.c \
 # 				plugin/ref_kernels/bli_gemm_fmm_ref.c

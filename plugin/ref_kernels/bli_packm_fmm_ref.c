@@ -69,10 +69,157 @@
 
 #include "blis.h"
 #include <complex.h>
+#include <time.h>
 #include STRINGIFY_INT(../PASTEMAC(plugin,BLIS_PNAME_INFIX).h)
 
+#define BLIS_ASM_SYNTAX_ATT
+#include "bli_x86_asm_macros.h"
+
+void bli_daxpys_mxn(
+	const dim_t m0,
+	const dim_t n,
+	double* restrict alpha,
+    double* restrict x,
+    const inc_t rs_x0,
+    const inc_t cs_x0,
+    double* restrict beta,
+    double* restrict y,
+    const inc_t rs_y0,
+    const inc_t cs_y0
+    )
+{
+	// This is the panel dimension assumed by the packm kernel.
+	const dim_t      mr    = 6;
+	const dim_t      nr    = 8;
+
+	// Typecast local copies of integers in case dim_t and inc_t are a
+	// different size than is expected by load instructions.
+
+	const uint64_t m = m0;
+
+	const uint64_t n_full = n / 4;
+	const uint64_t n_partial = (n % 4) / 2;
+	const uint64_t n_left = (n % 4) % 2;
+
+	const uint64_t rs_x = rs_x0;
+	const uint64_t cs_x = cs_x0;
+
+	const uint64_t rs_y = rs_y0;
+	const uint64_t cs_y = cs_y0;
+
+	const double one = 1.0;
+
+	// -------------------------------------------------------------------------
+
+	//
+	// n is leading dimension
+	// row major for some reason
+	//
+	// printf("huh %d %d %d %d\n", m, n, n_full, n_partial);
+	if (m == 6 && n == 8 && cs_x == 1 && cs_y == 1)
+	{
+		// printf("m %d \t n %d \t %d %d %d %5.2f \t %ld %ld %ld %ld\n", m, n, n_full, n_partial, n_left, *((double*) alpha), rs_x, rs_y, cs_x, cs_y);
+		begin_asm()
+
+		mov(var(n_full), r13)
+		mov(var(n_partial), r14)
+
+		mov(var(rs_x), r8)                 // load rs_x
+		mov(var(cs_x), r10)                // load cs_x
+		lea(mem(, r8, 8), r8)              // rs_x *= sizeof(double)
+		lea(mem(, r10, 8), r10)            // cs_x *= sizeof(double)
+
+		mov(var(rs_y), r11)                // load rs_y
+		mov(var(cs_y), r15)                // load cs_y
+		lea(mem(, r11, 8), r11)			   // rs_y *= sizeof(double)
+		lea(mem(, r15, 8), r15)            // cs_y *= sizeof(double)
+
+		// lea(mem(   , r10, 4), r14)         // r14 = 4*lda
+
+		mov(var(alpha), rcx)               // load address of alpha
+		vbroadcastsd(mem(rcx), ymm8)       // broadcast alpha
+
+		// -- kappa unit, column storage on A --------------------------------------
+
+		label(.DCOLUNIT)
+
+		mov(var(x), rax)
+		mov(var(y), rbx)
+
+		mov(var(m), rsi)
+
+		label(.DMFULLLOOP)
+
+		mov(rax, rcx)
+		mov(rbx, rdx)
+
+		vmovupd(mem(rax,         0), ymm1)						   // load C block
+		vmovupd(mem(rbx,         0), ymm2)						   // load buffer
+		vfmadd132pd(ymm8, ymm2, ymm1)
+
+		lea(mem(rax, r10, 4), rax)
+		add(imm(4*8), rbx)
+
+		vmovupd(mem(rax, 0), ymm3)						   // load C block
+		vmovupd(mem(rbx, 0), ymm4)						   // load buffer
+		vfmadd132pd(ymm8, ymm4, ymm3)
+		vmovupd(ymm1, mem(rdx, 0))
+		vmovupd(ymm3, mem(rbx, 0))
+		
+		add(r8, rcx)
+		add(r11, rdx)
+		mov(rcx, rax)
+		mov(rdx, rbx)
+
+		dec(rsi)
+		jne(.DMFULLLOOP)                   // iterate again if i != 0.
+
+		label(.DDONE)
+
+		end_asm(
+		: // output operands (none)
+		: // input operands
+		  [n_full] "m" (n_full),
+		  [n_partial] "m" (n_partial),
+		  [x]      "m" (x),
+		  [rs_x]   "m" (rs_x),
+		  [cs_x]   "m" (cs_x),
+		  [y]      "m" (y),
+		  [rs_y]   "m" (rs_y),
+		  [cs_y]   "m" (cs_y),
+		  [alpha]  "m"  (alpha),
+		  [m]	   "m" (m)
+		: // register clobber list
+		  "rax", "rbx", "rcx", "rdx", "rsi", "rdi",
+		  "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
+		  "xmm0", "xmm1", "xmm2", "xmm3",
+		  "xmm4", "xmm5", "xmm6", "xmm7",
+		  "xmm8", "xmm9", "xmm10", "xmm11",
+		  "xmm12", "xmm13", "xmm14", "xmm15",
+		  "memory"
+		)
+	}
+	else {
+		bli_daxpbys_mxn( m, n,
+		                  alpha, x, rs_x0, cs_x0,
+		                  &one, y, rs_y0, cs_y0 );
+		return;
+	}
+
+	if (n_left > 0) {
+		const uint64_t n_used = n_full * 4 + n_partial * 2;
+		// const uint64_t n_used = 0;
+		// const uint64_t _n_left = n;
+		bli_daxpbys_mxn( m, n_left,
+		                  alpha,
+		                  x + cs_x0 * n_used, rs_x0, cs_x0,
+		                  &one, y + cs_y0 * n_used, rs_y0, cs_y0
+		                );
+	}
+}
+
 #undef  GENTFUNC
-#define GENTFUNC( ctype, ch, opname, arch, suf ) \
+#define GENTFUNC( ctype, ch, opname, arch, suf, func ) \
 \
 void PASTEMAC3(ch,opname,arch,suf) \
      ( \
@@ -96,6 +243,7 @@ void PASTEMAC3(ch,opname,arch,suf) \
        const cntx_t* cntx  \
      ) \
 { \
+	double start_time = _bl_clock();\
 	const num_t dt = PASTEMAC(ch,type); \
 \
 	fmm_params_t*    params    = ( fmm_params_t* )params_; \
@@ -123,13 +271,20 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	\
 	dim_t row_tilde = params->m_tilde; \
 	dim_t col_tilde = params->n_tilde; \
+	if (ldp == 8) { \
+		dim_t temp = m_max;\
+		m_max = k_max;\
+		k_max = temp;\
+	} \
 	int num_row_part_whole = m_max % row_tilde; \
     if (m_max % row_tilde == 0) num_row_part_whole = 0; \
     dim_t row_part_size = m_max / row_tilde; \
+    if(0)printf("row-part-size: %d and %d\n", row_part_size, num_row_part_whole);\
 \
     int num_col_part_whole = k_max % col_tilde; \
     if (k_max % col_tilde == 0) num_col_part_whole = 0; \
     dim_t col_part_size = k_max / col_tilde; \
+    if(0)printf("col-part-size: %d and %d\n", col_part_size, num_col_part_whole);\
 	\
 	\
 	\
@@ -142,10 +297,17 @@ void PASTEMAC3(ch,opname,arch,suf) \
 	dim_t panel_dim_use = bli_min( panel_dim, m_max - ( panel_dim_off + off_md ) ); \
 	dim_t panel_len_use = bli_min( panel_len, k_max - ( panel_len_off + off_kd ) ); \
 \
+	if(0)printf("ldp %d - panel_dim_use %d - panel_len_use %d\n", ldp, panel_dim_use, panel_len_use);\
 	\
 	/* Call the usual packing kernel to pack the first sub-matrix and take care zeroing out the edges. */ \
 \
-	packm_def \
+	if (0 && PASTECH2(bli_,ch,eq0)(lambda) && 0) {\
+		panel_dim = 0;\
+		panel_len = 0;\
+		printf("IT'S ZERO\n\n");\
+	}\
+	\
+	packm_def\
 	( \
 	  conjc, \
 	  schema, \
@@ -182,7 +344,7 @@ void PASTEMAC3(ch,opname,arch,suf) \
         if (i < num_row_part_whole)\
             part_md = row_part_size + 1;\
         else\
-            part_md= row_part_size;\
+            part_md = row_part_size;\
 \
         if (j < num_col_part_whole)\
             part_nd = col_part_size + 1;\
@@ -219,6 +381,7 @@ void PASTEMAC3(ch,opname,arch,suf) \
 				/* Check if we need to shrink the micro-panel due to unequal partitioning. */ \
 		panel_dim_use = bli_min(panel_dim, part_md - panel_dim_off ); \
 		panel_len_use = bli_min(panel_len, part_nd - panel_len_off ); \
+		if(0) printf("| ldp %d - panel_dim_use %d - panel_len_use %d \t %d\n", ldp, panel_dim_use, panel_len_use, s);\
 \
 		if (!params->reindex) {\
 			c_use = ( ctype* )c + off_md * incc + off_kd * ldc; \
@@ -233,27 +396,46 @@ void PASTEMAC3(ch,opname,arch,suf) \
 		\
 		/* For subsequence sub-matrices, we don't need to re-zero any edges, just accumulate. */ \
 		if(1){\
-			for ( dim_t j = 0; j < panel_len_use; j++ ) \
-		{ \
-			for ( dim_t i = 0; i < panel_dim_use; i++ ) \
-			for ( dim_t d = 0; d < panel_bcast; d++ ) \
-			{ \
-				PASTEMAC(ch,axpys)( lambda, c_use[ i*incc ], p_use[ i*panel_bcast + d ] ); \
-			} \
-			c_use += ldc; \
-			p_use += ldp; \
-		} \
+\
+			if(0) {\
+				/* ldp and then 1? */ \
+				if(0) printf("ldp is %ld and %ld and %ld %ld\n\n", ldp, panel_dim_use, ldc, incc);\
+				if (1) func(panel_dim_use, panel_len_use, &lambda, c_use, incc, ldc, &BLIS_ONE, p_use, 1, ldp);\
+				continue;\
+			}\
+\
+			else {\
+				for ( dim_t j = 0; j < panel_len_use; j++ ) \
+				{ \
+					for ( dim_t i = 0; i < panel_dim_use; i++ ) {\
+						PASTEMAC(ch,axpys)( lambda, c_use[ i*incc ], p_use[ i ] ); \
+					}\
+					c_use += ldc; \
+					p_use += ldp; \
+				} \
+			}\
 		}\
 		else {\
-			PASTEMAC(ch,axpbys_mxn)( panel_dim_use, panel_len_use, \
-		                         &lambda, c_use, incc, ldc, \
-		                         &BLIS_ONE, p_use, 1, ldp ); \
 		}\
 	}} \
+	double end_time = _bl_clock();\
+	if (ldp == 8) {\
+		TIMES[2] += end_time - start_time;\
+	}\
+	else {\
+		TIMES[3] += end_time - start_time;\
+	}\
 	\
 }
 
-INSERT_GENTFUNC_BASIC( packm_fmm, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX )
+			// func( panel_dim_use, panel_len_use, \
+		 //                         &lambda, c_use, incc, ldc, \
+		 //                         &BLIS_ONE, p_use, 1, ldp ); \
+
+GENTFUNC( float,    s, packm_fmm, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX, bli_saxpbys_mxn) \
+GENTFUNC( double,   d, packm_fmm, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX, bli_daxpys_mxn) \
+GENTFUNC( scomplex, c, packm_fmm, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX, bli_caxpbys_mxn) \
+GENTFUNC( dcomplex, z, packm_fmm, BLIS_CNAME_INFIX, BLIS_REF_SUFFIX, bli_zaxpbys_mxn)
 
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, arch, suf ) \
@@ -347,6 +529,8 @@ void PASTEMAC3(ch,opname,arch,suf) \
 				/* Check if we need to shrink the micro-panel due to unequal partitioning. */ \
 		panel_dim_use = bli_min(panel_dim, part_m[s] - panel_dim_off ); \
 		panel_len_use = bli_min(panel_len, part_n[s] - panel_len_off ); \
+		\
+		/*printf("%d panel_dim_use, panel_len_use %d %d\n", ldp, panel_dim_use, panel_len_use);*/\
 \
 		if (!params->reindex) {\
 			c_use = ( ctype* )c + off_m[s] * incc + off_k[s] * ldc; \
@@ -359,6 +543,8 @@ void PASTEMAC3(ch,opname,arch,suf) \
 			p_use = ( ctype* )p; \
 		}\
 		\
+		if (0) printf("| ldp %d - panel_dim_use %d - panel_len_use %d \t %d\n", ldp, panel_dim_use, panel_len_use, s);\
+		if (0) printf("%d panel_dim_use, panel_len_use %d %d\n", ldp, panel_dim_use, panel_len_use);\
 		/* For subsequence sub-matrices, we don't need to re-zero any edges, just accumulate. */ \
 		for ( dim_t j = 0; j < panel_len_use; j++ ) \
 		{ \

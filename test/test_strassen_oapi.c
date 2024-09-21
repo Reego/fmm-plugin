@@ -154,11 +154,12 @@ int test_bli_strassen_ex( int m, int n, int k, int debug, fmm_t* fmm )
     bli_randm( &B );
     bli_randm( &A );
     bli_randm( &C );
+    // bli_setm( &BLIS_ZERO, &C );
     bli_copym( &C, &C_ref );
 
-    // bli_printm( "matrix 'a', initialized by columns:", &A, "%5.3f", "" );
-    // bli_printm( "matrix 'b', initialized by columns:", &B, "%5.3f", "" );
-    // bli_printm( "matrix 'c', initialized by columns:", &C, "%5.3f", "" );
+    bli_printm( "matrix 'a', initialized by columns:", &A, "%5.3f", "" );
+    bli_printm( "matrix 'b', initialized by columns:", &B, "%5.3f", "" );
+    bli_printm( "matrix 'c', initialized by columns:", &C, "%5.3f", "" );
 #else 
     // set matrices to known values for debug purposes. 
 
@@ -310,12 +311,15 @@ int test_bli_strassen(int m, int n, int k, int debug) {
 int main( int argc, char *argv[] )
 {
 
-    fmm_t fmm = new_fmm_ex("222.txt", 1, 0, false, false);
+    fmm_t fmm = new_fmm_ex("111.txt", 1, -1, false, false);
 
     int m, n, k;
-    m = 2;
-    n = 2;
-    k = 2;
+    // m = 2;
+    // n = 11;
+    // k = 2;
+    m = 8;
+    n = 8;
+    k = 8;
 
     printf("\n\n\n");
 

@@ -95,16 +95,6 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     bli_copym( &C, &C_ref );
     bli_copym( &C, &C_reset );
 
-    // ref
-    {
-        ref_beg = bl_clock();
-        {
-            bli_gemm( alpha, &A, &B, beta, &C_ref);
-            // my_mm(&A, &B, &C_ref, m, n, k);
-        }
-        ref_rectime = bl_clock() - ref_beg;
-    }
-
     if (fmm == 0)
     {
         for ( i = 0; i < nreps; i ++ ) {
@@ -126,6 +116,10 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     else
     {
         for ( i = 0; i < nreps; i ++ ) {
+            TIMES[0] = 0.0;
+            TIMES[1] = 0.0;
+            TIMES[2] = 0.0;
+            TIMES[3] = 0.0;
             bli_copym( &C_reset, &C );
             bl_dgemm_beg = bl_clock();
             {
@@ -133,12 +127,24 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
             }
             bl_dgemm_time = bl_clock() - bl_dgemm_beg;
 
+            printf("\nTIMES:\n====Total %5.2g\n====UKR %5.2g UKR_TOTAL %5.2g PACKB %5.2g PACKA %5.2g\n\n", bl_dgemm_time, TIMES[0], TIMES[1], TIMES[2], TIMES[3]);
+
             if ( i == 0 ) {
                 bl_dgemm_rectime = bl_dgemm_time;
             } else {
                 bl_dgemm_rectime = bl_dgemm_time < bl_dgemm_rectime ? bl_dgemm_time : bl_dgemm_rectime;
             }
         }
+    }
+
+          // ref
+    {
+        ref_beg = bl_clock();
+        {
+            bli_gemm( alpha, &A, &B, beta, &C_ref);
+            // my_mm(&A, &B, &C_ref, m, n, k);
+        }
+        ref_rectime = bl_clock() - ref_beg;
     }
 
     double        resid;

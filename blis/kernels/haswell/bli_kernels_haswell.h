@@ -281,4 +281,3 @@ GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_6x8n )
 GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_3x8n )
 GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_2x8n )
 GEMMSUP_KER_PROT( double,   d, gemmsup_rd_haswell_asm_1x8n )
-
