@@ -52,10 +52,10 @@ double _bl_clock_helper()
 
     double the_time = (double) nsec * 1.0e-9 * timebase.numer / timebase.denom;
 
-    if ( gtod_ref_time_sec == 0.0 )
-        gtod_ref_time_sec = the_time;
+    if ( _gtod_ref_time_sec == 0.0 )
+        _gtod_ref_time_sec = the_time;
 
-    return the_time - gtod_ref_time_sec;
+    return the_time - _gtod_ref_time_sec;
 }
 
 // --- End OSX build definitions ---------------------------------------------
@@ -69,10 +69,10 @@ double _bl_clock_helper()
 
     clock_gettime( CLOCK_MONOTONIC, &ts );
 
-    if ( gtod_ref_time_sec == 0.0 )
-        gtod_ref_time_sec = ( double ) ts.tv_sec;
+    if ( _gtod_ref_time_sec == 0.0 )
+        _gtod_ref_time_sec = ( double ) ts.tv_sec;
 
-    norm_sec = ( double ) ts.tv_sec - gtod_ref_time_sec;
+    norm_sec = ( double ) ts.tv_sec - _gtod_ref_time_sec;
 
     the_time = norm_sec + ts.tv_nsec * 1.0e-9;
 

@@ -43,7 +43,7 @@
  * The timer functions are copied directly from BLIS 0.2.0
  *
  */
-// static double gtod_ref_time_sec = 0.0;
+static double _gtod_ref_time_sec = 0.0;
 
 
 double _bl_clock_helper();
