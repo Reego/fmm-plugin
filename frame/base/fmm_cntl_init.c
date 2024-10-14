@@ -12,6 +12,52 @@ int NR_SCALE = 1;
 
 bool USE_STATIC = true;
 
+void bli_packm_def_cntl_init_node_dupe
+     (
+       void_fp           var_func,
+       num_t             dt_orig,
+       num_t             dt_pack,
+       num_t             dt_bmult,
+       packm_ker_ft      ukr,
+       dim_t             bmult_m_def,
+       dim_t             bmult_m_pack,
+       dim_t             bmult_m_bcast,
+       dim_t             bmult_m_scale,
+       dim_t             bmult_n_def,
+       bool              does_invert_diag,
+       bool              rev_iter_if_upper,
+       bool              rev_iter_if_lower,
+       pack_t            pack_schema,
+       packbuf_t         pack_buf_type,
+       packm_def_cntl_t* cntl
+     )
+{
+    // Initialize the packm_def_cntl_t struct.
+    cntl->ukr               = ukr;
+    cntl->dt_orig           = dt_orig;
+    cntl->dt_pack           = dt_pack;
+    cntl->dt_bmult          = dt_bmult;
+    cntl->bmult_m_def       = bmult_m_def;
+    cntl->bmult_m_pack      = bmult_m_pack;
+    cntl->bmult_m_bcast     = bmult_m_bcast;
+    cntl->bmult_m_scale     = bmult_m_scale;
+    cntl->bmult_n_def       = bmult_n_def;
+    cntl->does_invert_diag  = does_invert_diag;
+    cntl->rev_iter_if_upper = rev_iter_if_upper;
+    cntl->rev_iter_if_lower = rev_iter_if_lower;
+    cntl->pack_schema       = pack_schema;
+    cntl->pack_buf_type     = pack_buf_type;
+    cntl->params            = cntl;
+
+    bli_packm_cntl_init_node
+    (
+      var_func,
+      bli_packm_blk_var1_dupe,
+      NULL,
+      &cntl->cntl
+    );
+}
+
 void bli_fmm_cntl_init_pushb
      (
              ind_t        im,
@@ -972,7 +1018,7 @@ void bli_fmm_gemm_cntl_init
 
     void_fp macro_kernel_fp = family == BLIS_GEMM ||
                               family == BLIS_HEMM ||
-                              family == BLIS_SYMM ? bli_gemm_ker_var2 :
+                              family == BLIS_SYMM ? bli_gemm_ker_var2_dupe : // TODO - EDIT TO DUPE
 #ifdef BLIS_ENABLE_JRIR_TLB
                               family == BLIS_GEMMT ?
                                  bli_obj_is_lower( c ) ? bli_gemmt_l_ker_var2b : bli_gemmt_u_ker_var2b :
@@ -1081,7 +1127,7 @@ void bli_fmm_gemm_cntl_init
 
     bli_gemm_var_cntl_init_node
     (
-      macro_kernel_fp,
+      bli_gemm_ker_var2_dupe,
       dt_comp,
       dt_c,
       gemm_ukr,
@@ -1107,7 +1153,7 @@ void bli_fmm_gemm_cntl_init
     bli_gemm_var_cntl_set_params( &cntl->ker, ( cntl_t* )&cntl->ker );
 
     // Create a node for packing matrix A.
-    bli_packm_def_cntl_init_node
+    bli_packm_def_cntl_init_node_dupe
     (
       bli_l3_packa, // pack the left-hand operand
       dt_a,
@@ -1155,7 +1201,7 @@ void bli_fmm_gemm_cntl_init
     );
 
     // Create a node for packing matrix B.
-    bli_packm_def_cntl_init_node
+    bli_packm_def_cntl_init_node_dupe
     (
       bli_l3_packb, // pack the right-hand operand
       dt_b,

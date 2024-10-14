@@ -68,7 +68,7 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     double ref_beg, bl_dgemm_beg, bl_dgemm_time;
     int    nrepeats;
     int    lda, ldb, ldc, ldc_ref;
-    double ref_rectime, bl_dgemm_rectime;
+    double ref_rectime, bl_dgemm_rectime, bl_dgemm_rectime_adjusted;
     double diff;
 
     dt = BLIS_DOUBLE;
@@ -95,6 +95,11 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     bli_copym( &C, &C_ref );
     bli_copym( &C, &C_reset );
 
+    double times_pre[] = { 0.0, 0.0, 0.0, 0.0 };
+    double times_adjusted[] = { 0.0, 0.0, 0.0, 0.0 };
+
+    const double CLOCK_CALL_TIME = .16 / 2014720.0;
+
     if (fmm == 0)
     {
         for ( i = 0; i < nreps; i ++ ) {
@@ -114,12 +119,16 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
         }
     }
     else
-    {
+    {   
         for ( i = 0; i < nreps; i ++ ) {
             TIMES[0] = 0.0;
             TIMES[1] = 0.0;
             TIMES[2] = 0.0;
             TIMES[3] = 0.0;
+            CLOCK_CALLS[0] = 0;
+            CLOCK_CALLS[1] = 0;
+            CLOCK_CALLS[2] = 0;
+            CLOCK_CALLS[3] = 0;
             bli_copym( &C_reset, &C );
             bl_dgemm_beg = bl_clock();
             {
@@ -127,12 +136,20 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
             }
             bl_dgemm_time = bl_clock() - bl_dgemm_beg;
 
-            printf("\nTIMES:\n====Total %5.2g\n====UKR %5.2g UKR_TOTAL %5.2g PACKB %5.2g PACKA %5.2g\n\n", bl_dgemm_time, TIMES[0], TIMES[1], TIMES[2], TIMES[3]);
+            double total_clock_calls = (double)(CLOCK_CALLS[1] + CLOCK_CALLS[2] + CLOCK_CALLS[3]);
+            double adjusted_time = bl_dgemm_time - total_clock_calls * CLOCK_CALL_TIME;
 
-            if ( i == 0 ) {
+            if ( i == 0  || adjusted_time < bl_dgemm_rectime) {
                 bl_dgemm_rectime = bl_dgemm_time;
-            } else {
-                bl_dgemm_rectime = bl_dgemm_time < bl_dgemm_rectime ? bl_dgemm_time : bl_dgemm_rectime;
+                bl_dgemm_rectime_adjusted = adjusted_time;
+                times_adjusted[0] = TIMES[0] - CLOCK_CALLS[0] * CLOCK_CALL_TIME;
+                times_adjusted[1] = TIMES[1] - CLOCK_CALLS[1] * CLOCK_CALL_TIME;
+                times_adjusted[2] = TIMES[2] - CLOCK_CALLS[2] * CLOCK_CALL_TIME;
+                times_adjusted[3] = TIMES[3] - CLOCK_CALLS[3] * CLOCK_CALL_TIME;
+                times_pre[0] = TIMES[0];
+                times_pre[1] = TIMES[1];
+                times_pre[2] = TIMES[2];
+                times_pre[3] = TIMES[3];
             }
         }
     }
@@ -164,6 +181,8 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
 
     printf( "%5d\t %5d\t %5d\t %5.2lf\t %5.2lf\t %5.2g\n",
                 m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid );
+    printf("\nTIMES PRE:\n====GFLOPS: %5.2g \tTotal %5.2g\n====ACC %5.2g UKR_TOTAL %5.2g PACKB %5.2g PACKA %5.2g\n\n", flops/bl_dgemm_rectime, bl_dgemm_rectime, times_pre[0], times_pre[1], times_pre[2], times_pre[3]);
+    printf("\nADJUSTED:\n====GFLOPS: %5.2g \tTotal %5.2g\n====ACC %5.2g UKR_TOTAL %5.2g PACKB %5.2g PACKA %5.2g\n\n", flops/bl_dgemm_rectime_adjusted, bl_dgemm_rectime_adjusted, times_adjusted[0], times_adjusted[1], times_adjusted[2], times_adjusted[3]);
 
     fflush(stdout);
 

@@ -37,7 +37,8 @@ PLUGIN_LIB = plugin/lib/haswell/libblis_fmm_blis.a
 
 LIBBLIS = $(libdir)/libblis.a
 
-FRAME_CC_SRC= 	frame/util/bli_fmm_util.c \
+FRAME_CC_SRC= 	frame/base/bli_dupes.c \
+				frame/util/bli_fmm_util.c \
 				frame/base/bli_strassen_ab.c \
 				frame/base/bli_symm.c \
 				frame/base/fmm_cntl.c \

@@ -243,7 +243,6 @@ void PASTEMAC3(ch,opname,arch,suf) \
        const cntx_t* cntx  \
      ) \
 { \
-	double start_time = _bl_clock();\
 	const num_t dt = PASTEMAC(ch,type); \
 \
 	fmm_params_t*    params    = ( fmm_params_t* )params_; \
@@ -418,14 +417,6 @@ void PASTEMAC3(ch,opname,arch,suf) \
 		else {\
 		}\
 	}} \
-	double end_time = _bl_clock();\
-	if (ldp == 8) {\
-		TIMES[2] += end_time - start_time;\
-	}\
-	else {\
-		TIMES[3] += end_time - start_time;\
-	}\
-	\
 }
 
 			// func( panel_dim_use, panel_len_use, \

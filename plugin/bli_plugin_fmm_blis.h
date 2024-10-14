@@ -43,7 +43,7 @@
  * The timer functions are copied directly from BLIS 0.2.0
  *
  */
-static double gtod_ref_time_sec = 0.0;
+// static double gtod_ref_time_sec = 0.0;
 
 
 double _bl_clock_helper();
@@ -58,6 +58,10 @@ double _bl_clock();
 // Use global kernel id variables instead of passing by argument
 
 extern double TIMES[];
+extern int CLOCK_CALLS[];
+#define TIME_PACK   1
+#define TIME_C      1
+#define TIME_ACC_C  1
 
 extern siz_t FMM_BLIS_PACK_UKR;
 extern siz_t FMM_BLIS_PACK_UKR_SYMM;

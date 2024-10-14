@@ -38,87 +38,6 @@
 
 #include STRINGIFY_INT(../PASTEMAC(plugin,BLIS_PNAME_INFIX).h)
 
-double TIMES[] = { 0.0, 0.0, 0.0, 0.0 };
-
-double _bl_clock()
-{
-    return _bl_clock_helper();
-}
-
-#if BL_OS_WINDOWS
-// --- Begin Windows build definitions -----------------------------------------
-
-double _bl_clock_helper()
-{
-    LARGE_INTEGER clock_freq = {0};
-    LARGE_INTEGER clock_val;
-    BOOL          r_val;
-
-    r_val = QueryPerformanceFrequency( &clock_freq );
-
-    if ( r_val == 0 )
-    {
-        fprintf( stderr, "\nblislab: %s (line %lu):\nblislab: %s \n", __FILE__, __LINE__, "QueryPerformanceFrequency() failed" );
-        fflush( stderr );
-        abort();
-    }
-
-    r_val = QueryPerformanceCounter( &clock_val );
-
-    if ( r_val == 0 )
-    {
-        fprintf( stderr, "\nblislab: %s (line %lu):\nblislab: %s \n", __FILE__, __LINE__, "QueryPerformanceFrequency() failed" );
-        fflush( stderr );
-        abort();
-    }
-
-    return ( ( double) clock_val.QuadPart / ( double) clock_freq.QuadPart );
-}
-
-// --- End Windows build definitions -------------------------------------------
-#elif BL_OS_OSX
-// --- Begin OSX build definitions -------------------------------------------
-
-double _bl_clock_helper()
-{
-    mach_timebase_info_data_t timebase;
-    mach_timebase_info( &timebase );
-
-    uint64_t nsec = mach_absolute_time();
-
-    double the_time = (double) nsec * 1.0e-9 * timebase.numer / timebase.denom;
-
-    if ( gtod_ref_time_sec == 0.0 )
-        gtod_ref_time_sec = the_time;
-
-    return the_time - gtod_ref_time_sec;
-}
-
-// --- End OSX build definitions ---------------------------------------------
-#else
-// --- Begin Linux build definitions -------------------------------------------
-
-double _bl_clock_helper()
-{
-    double the_time, norm_sec;
-    struct timespec ts;
-
-    clock_gettime( CLOCK_MONOTONIC, &ts );
-
-    if ( gtod_ref_time_sec == 0.0 )
-        gtod_ref_time_sec = ( double ) ts.tv_sec;
-
-    norm_sec = ( double ) ts.tv_sec - gtod_ref_time_sec;
-
-    the_time = norm_sec + ts.tv_nsec * 1.0e-9;
-
-    return the_time;
-}
-
-// --- End Linux build definitions ---------------------------------------------
-#endif
-
-
 #undef  GENTFUNC
 #define GENTFUNC( ctype, ch, opname, arch, suf, func ) \
 \
@@ -136,7 +55,7 @@ void PASTEMAC3(ch,opname,arch,suf) \
        const cntx_t*    cntx  \
      ) \
 { \
-	double start_time = _bl_clock();\
+\
 	const num_t       dt       = PASTEMAC(ch,type); \
 	const gemm_ukr_ft ukr      = bli_cntx_get_ukr_dt( dt, BLIS_GEMM_UKR, cntx ); \
 	const bool        row_pref = bli_cntx_get_ukr_prefs_dt( dt, BLIS_GEMM_UKR_ROW_PREF, cntx ); \
@@ -199,7 +118,10 @@ void PASTEMAC3(ch,opname,arch,suf) \
 		cntx \
 	); \
 \
-	double ukr_end_time = _bl_clock();\
+	double acc_begin_time = 0.0;\
+	if (TIME_ACC_C) {\
+		acc_begin_time = _bl_clock();\
+	}\
 \
 	ctype* abp = (ctype*) ab;\
 \
@@ -251,9 +173,14 @@ void PASTEMAC3(ch,opname,arch,suf) \
 			      ( void* )beta, c_use, rs_c, cs_c ); \
 		}\
 	} \
-	double end_time = _bl_clock();\
-	TIMES[0] += ukr_end_time - start_time;\
-	TIMES[1] += end_time - start_time;\
+\
+\
+	if (TIME_ACC_C) {\
+		double end_time = _bl_clock();\
+		TIMES[0] += end_time - acc_begin_time;\
+		CLOCK_CALLS[0] += 1;\
+		CLOCK_CALLS[1] += 2;\
+	}\
 }
 
 // if(1) {\

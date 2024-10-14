@@ -90,6 +90,25 @@ struct fmm_gemm_cntl_alt_s
 };
 typedef struct fmm_gemm_cntl_alt_s fmm_gemm_cntl_alt_t;
 
+void bli_packm_blk_var1_dupe
+     (
+       const obj_t*     c,
+             obj_t*     p,
+       const cntx_t*    cntx,
+       const cntl_t*    cntl,
+             thrinfo_t* thread
+     );
+
+void bli_gemm_ker_var2_dupe
+     (
+       const obj_t*     a,
+       const obj_t*     b,
+       const obj_t*     c,
+       const cntx_t*    cntx,
+       const cntl_t*    cntl,
+             thrinfo_t* thread_par
+     );
+
 void bli_fmm_gemm_cntl_init_pushb
      (
              ind_t        im,
