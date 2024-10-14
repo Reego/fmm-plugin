@@ -1,0 +1,850 @@
+{
+   "111": [
+      "algorithms/111",
+      [
+         1,
+         1,
+         1
+      ]
+   ],
+   "alphatensor599": [
+      "at-algorithms/alphatensor599", 
+      [
+         5, 
+         9, 
+         9
+      ]
+   ], 
+   "alphatensor355": [
+      "at-algorithms/alphatensor355", 
+      [
+         3, 
+         5, 
+         5
+      ]
+   ], 
+   "alphatensor359": [
+      "at-algorithms/alphatensor359", 
+      [
+         3, 
+         5, 
+         9
+      ]
+   ], 
+   "fast423_130": [
+      "algorithms/fast423-130", 
+      [
+         4, 
+         2, 
+         3
+      ]
+   ], 
+   "alphatensor699": [
+      "at-algorithms/alphatensor699", 
+      [
+         6, 
+         9, 
+         9
+      ]
+   ], 
+   "grey433_29_234": [
+      "algorithms/grey433-29-234", 
+      [
+         4, 
+         3, 
+         3
+      ]
+   ], 
+   "grey252_18_99": [
+      "algorithms/grey252-18-99", 
+      [
+         2, 
+         5, 
+         2
+      ]
+   ], 
+   "342": [
+      "algorithms/grey342-20-144", 
+      [
+         3, 
+         4, 
+         2
+      ]
+   ], 
+   "343": [
+      "algorithms/smirnov343-29-204", 
+      [
+         3, 
+         4, 
+         3
+      ]
+   ], 
+   "grey_strassen": [
+      "algorithms/grey-strassen", 
+      [
+         2, 
+         2, 
+         2
+      ]
+   ], 
+   "grey333_23_142": [
+      "algorithms/grey333-23-142", 
+      [
+         3, 
+         3, 
+         3
+      ]
+   ], 
+   "grey323_15_103": [
+      "algorithms/grey323-15-103", 
+      [
+         3, 
+         2, 
+         3
+      ]
+   ], 
+   "324": [
+      "algorithms/grey324-20-144", 
+      [
+         3, 
+         2, 
+         4
+      ]
+   ], 
+   "madan232_11_48": [
+      "algorithms/madan232-11-48", 
+      [
+         2, 
+         3, 
+         2
+      ]
+   ], 
+   "classical222_8_24": [
+      "algorithms/classical222-8-24", 
+      [
+         2, 
+         2, 
+         2
+      ]
+   ], 
+   "alphatensor999": [
+      "at-algorithms/alphatensor999", 
+      [
+         9, 
+         9, 
+         9
+      ]
+   ], 
+   "alphatensor455": [
+      "at-algorithms/alphatensor455", 
+      [
+         4, 
+         5, 
+         5
+      ]
+   ], 
+   "alphatensor459": [
+      "at-algorithms/alphatensor459", 
+      [
+         4, 
+         5, 
+         9
+      ]
+   ], 
+   "363": [
+      "algorithms/smirnov363-40-960", 
+      [
+         3, 
+         6, 
+         3
+      ]
+   ], 
+   "smirnov333_23_139": [
+      "algorithms/smirnov333-23-139", 
+      [
+         3, 
+         3, 
+         3
+      ]
+   ], 
+   "smirnov353_36_280": [
+      "algorithms/smirnov353-36-280", 
+      [
+         3, 
+         5, 
+         3
+      ]
+   ], 
+   "alphatensor234": [
+      "at-algorithms/alphatensor234", 
+      [
+         2, 
+         3, 
+         4
+      ]
+   ], 
+   "alphatensor235": [
+      "at-algorithms/alphatensor235", 
+      [
+         2, 
+         3, 
+         5
+      ]
+   ], 
+   "alphatensor233": [
+      "at-algorithms/alphatensor233", 
+      [
+         2, 
+         3, 
+         3
+      ]
+   ], 
+   "alphatensor335": [
+      "at-algorithms/alphatensor335", 
+      [
+         3, 
+         3, 
+         5
+      ]
+   ], 
+   "alphatensor334": [
+      "at-algorithms/alphatensor334", 
+      [
+         3, 
+         3, 
+         4
+      ]
+   ], 
+   "grey234_20_144": [
+      "algorithms/grey234-20-144", 
+      [
+         2, 
+         3, 
+         4
+      ]
+   ], 
+   "alphatensor333": [
+      "at-algorithms/alphatensor333", 
+      [
+         3, 
+         3, 
+         3
+      ]
+   ], 
+   "alphatensor444": [
+      "at-algorithms/alphatensor444", 
+      [
+         4, 
+         4, 
+         4
+      ]
+   ], 
+   "smirnov333_20_182_approx": [
+      "algorithms/ignore/smirnov333-20-182-approx", 
+      [
+         3, 
+         3, 
+         3
+      ]
+   ], 
+   "grey422_14_84": [
+      "algorithms/grey422-14-84", 
+      [
+         4, 
+         2, 
+         2
+      ]
+   ], 
+   "522": [
+      "algorithms/grey522-18-99", 
+      [
+         5, 
+         2, 
+         2
+      ]
+   ], 
+   "classical423_24_72": [
+      "algorithms/classical423-24-72", 
+      [
+         4, 
+         2, 
+         3
+      ]
+   ], 
+   "423": [
+      "algorithms/fast423-138", 
+      [
+         4, 
+         2, 
+         3
+      ]
+   ], 
+   "422": [
+      "algorithms/grey422-14-84", 
+      [
+         4, 
+         2, 
+         2
+      ]
+   ], 
+   "424": [
+      "algorithms/grey424-26-257", 
+      [
+         4, 
+         2, 
+         4
+      ]
+   ], 
+   "hk332_15_94": [
+      "algorithms/hk332-15-94", 
+      [
+         3, 
+         3, 
+         2
+      ]
+   ], 
+   "smirnov323_14_108_approx": [
+      "algorithms/ignore/smirnov323-14-108-approx", 
+      [
+         3, 
+         2, 
+         3
+      ]
+   ], 
+   "442": [
+      "algorithms/grey442-26-257", 
+      [
+         4, 
+         4, 
+         2
+      ]
+   ], 
+   "fast323": [
+      "algorithms/grey323-15-103", 
+      [
+         3, 
+         2, 
+         3
+      ]
+   ], 
+   "alphatensor223": [
+      "at-algorithms/alphatensor223", 
+      [
+         2, 
+         2, 
+         3
+      ]
+   ], 
+   "alphatensor222": [
+      "at-algorithms/alphatensor222", 
+      [
+         2, 
+         2, 
+         2
+      ]
+   ], 
+   "grey332_15_103": [
+      "algorithms/grey332-15-103", 
+      [
+         3, 
+         3, 
+         2
+      ]
+   ], 
+   "alphatensor227": [
+      "at-algorithms/alphatensor227", 
+      [
+         2, 
+         2, 
+         7
+      ]
+   ], 
+   "alphatensor226": [
+      "at-algorithms/alphatensor226", 
+      [
+         2, 
+         2, 
+         6
+      ]
+   ], 
+   "243": [
+      "algorithms/grey243-20-144", 
+      [
+         2, 
+         4, 
+         3
+      ]
+   ], 
+   "alphatensor224": [
+      "at-algorithms/alphatensor224", 
+      [
+         2, 
+         2, 
+         4
+      ]
+   ], 
+   "alphatensor228": [
+      "at-algorithms/alphatensor228", 
+      [
+         2, 
+         2, 
+         8
+      ]
+   ], 
+   "grey423_20_144": [
+      "algorithms/grey423-20-144", 
+      [
+         4, 
+         2, 
+         3
+      ]
+   ], 
+   "grey243_20_144": [
+      "algorithms/grey243-20-144", 
+      [
+         2, 
+         4, 
+         3
+      ]
+   ], 
+   "fast424": [
+      "algorithms/grey424-26-257", 
+      [
+         4, 
+         2, 
+         4
+      ]
+   ], 
+   "432": [
+      "algorithms/grey432-20-144", 
+      [
+         4, 
+         3, 
+         2
+      ]
+   ], 
+   "grey442_26_257": [
+      "algorithms/grey442-26-257", 
+      [
+         4, 
+         4, 
+         2
+      ]
+   ], 
+   "alphatensor225": [
+      "at-algorithms/alphatensor225", 
+      [
+         2, 
+         2, 
+         5
+      ]
+   ], 
+   "336": [
+      "algorithms/smirnov336-40-960", 
+      [
+         3, 
+         3, 
+         6
+      ]
+   ], 
+   "smirnov343_29_204": [
+      "algorithms/smirnov343-29-204", 
+      [
+         3, 
+         4, 
+         3
+      ]
+   ], 
+   "333": [
+      "algorithms/smirnov333-23-139", 
+      [
+         3, 
+         3, 
+         3
+      ]
+   ], 
+   "332": [
+      "algorithms/hk332-15-94", 
+      [
+         3, 
+         3, 
+         2
+      ]
+   ], 
+   "252": [
+      "algorithms/grey252-18-99", 
+      [
+         2, 
+         5, 
+         2
+      ]
+   ], 
+   "grey324_20_144": [
+      "algorithms/grey324-20-144", 
+      [
+         3, 
+         2, 
+         4
+      ]
+   ], 
+   "classical234_24_72": [
+      "algorithms/classical234-24-72", 
+      [
+         2, 
+         3, 
+         4
+      ]
+   ], 
+   "alphatensor255": [
+      "at-algorithms/alphatensor255", 
+      [
+         2, 
+         5, 
+         5
+      ]
+   ], 
+   "grey342_20_144": [
+      "algorithms/grey342-20-144", 
+      [
+         3, 
+         4, 
+         2
+      ]
+   ], 
+   "alphatensor789": [
+      "at-algorithms/alphatensor789", 
+      [
+         7, 
+         8, 
+         9
+      ]
+   ], 
+   "classical333_27_81": [
+      "algorithms/classical333-27-81", 
+      [
+         3, 
+         3, 
+         3
+      ]
+   ], 
+   "633": [
+      "algorithms/smirnov633-40-960", 
+      [
+         6, 
+         3, 
+         3
+      ]
+   ], 
+   "222": [
+      "algorithms/strassen", 
+      [
+         2, 
+         2, 
+         2
+      ]
+   ], 
+   "alphatensor245": [
+      "at-algorithms/alphatensor245", 
+      [
+         2, 
+         4, 
+         5
+      ]
+   ], 
+   "alphatensor244": [
+      "at-algorithms/alphatensor244", 
+      [
+         2, 
+         4, 
+         4
+      ]
+   ], 
+   "grey333_23_221": [
+      "algorithms/grey333-23-221", 
+      [
+         3, 
+         3, 
+         3
+      ]
+   ], 
+   "grey323_15_89": [
+      "algorithms/ignore/grey323-15-89", 
+      [
+         3, 
+         2, 
+         3
+      ]
+   ], 
+   "alphatensor555": [
+      "at-algorithms/alphatensor555", 
+      [
+         5, 
+         5, 
+         5
+      ]
+   ], 
+   "grey343_29_234": [
+      "algorithms/grey343-29-234", 
+      [
+         3, 
+         4, 
+         3
+      ]
+   ], 
+   "alphatensor557": [
+      "at-algorithms/alphatensor557", 
+      [
+         5, 
+         5, 
+         7
+      ]
+   ], 
+   "schonhage333_21_117_approx": [
+      "algorithms/ignore/schonhage333-21-117-approx", 
+      [
+         3, 
+         3, 
+         3
+      ]
+   ], 
+   "232": [
+      "algorithms/madan232-11-48", 
+      [
+         2, 
+         3, 
+         2
+      ]
+   ], 
+   "alphatensor799": [
+      "at-algorithms/alphatensor799", 
+      [
+         7, 
+         9, 
+         9
+      ]
+   ], 
+   "fast423_134": [
+      "algorithms/fast423-134", 
+      [
+         4, 
+         2, 
+         3
+      ]
+   ], 
+   "fast423_138": [
+      "algorithms/fast423-138", 
+      [
+         4, 
+         2, 
+         3
+      ]
+   ], 
+   "grey432_20_144": [
+      "algorithms/grey432-20-144", 
+      [
+         4, 
+         3, 
+         2
+      ]
+   ], 
+   "fast423_156": [
+      "algorithms/fast423-156", 
+      [
+         4, 
+         2, 
+         3
+      ]
+   ], 
+   "grey522_18_99": [
+      "algorithms/grey522-18-99", 
+      [
+         5, 
+         2, 
+         2
+      ]
+   ], 
+   "234": [
+      "algorithms/grey234-20-144", 
+      [
+         2, 
+         3, 
+         4
+      ]
+   ], 
+   "hk323_15_94": [
+      "algorithms/hk323-15-94", 
+      [
+         3, 
+         2, 
+         3
+      ]
+   ], 
+   "smirnov633_40_960": [
+      "algorithms/smirnov633-40-960", 
+      [
+         6, 
+         3, 
+         3
+      ]
+   ], 
+   "alphatensor679": [
+      "at-algorithms/alphatensor679", 
+      [
+         6, 
+         7, 
+         9
+      ]
+   ], 
+   "strassen": [
+      "algorithms/strassen", 
+      [
+         2, 
+         2, 
+         2
+      ]
+   ], 
+   "322": [
+      "algorithms/grey322-11-50", 
+      [
+         3, 
+         2, 
+         2
+      ]
+   ], 
+   "323": [
+      "algorithms/hk323-15-94", 
+      [
+         3, 
+         2, 
+         3
+      ]
+   ], 
+   "grey333_23_144": [
+      "algorithms/grey333-23-144", 
+      [
+         3, 
+         3, 
+         3
+      ]
+   ], 
+   "bini322_10_52_approx": [
+      "algorithms/ignore/bini322-10-52-approx", 
+      [
+         3, 
+         2, 
+         2
+      ]
+   ], 
+   "grey333_23_143": [
+      "algorithms/grey333-23-143", 
+      [
+         3, 
+         3, 
+         3
+      ]
+   ], 
+   "smirnov336_40_960": [
+      "algorithms/smirnov336-40-960", 
+      [
+         3, 
+         3, 
+         6
+      ]
+   ], 
+   "alphatensor589": [
+      "at-algorithms/alphatensor589", 
+      [
+         5, 
+         8, 
+         9
+      ]
+   ], 
+   "grey322_11_50": [
+      "algorithms/grey322-11-50", 
+      [
+         3, 
+         2, 
+         2
+      ]
+   ], 
+   "alphatensor344": [
+      "at-algorithms/alphatensor344", 
+      [
+         3, 
+         4, 
+         4
+      ]
+   ], 
+   "alphatensor345": [
+      "at-algorithms/alphatensor345", 
+      [
+         3, 
+         4, 
+         5
+      ]
+   ], 
+   "alphatensor445": [
+      "at-algorithms/alphatensor445", 
+      [
+         4, 
+         4, 
+         5
+      ]
+   ], 
+   "alphatensor779": [
+      "at-algorithms/alphatensor779", 
+      [
+         7, 
+         7, 
+         9
+      ]
+   ], 
+   "alphatensor579": [
+      "at-algorithms/alphatensor579", 
+      [
+         5, 
+         7, 
+         9
+      ]
+   ], 
+   "grey424_26_257": [
+      "algorithms/grey424-26-257", 
+      [
+         4, 
+         2, 
+         4
+      ]
+   ], 
+   "433": [
+      "algorithms/grey433-29-234", 
+      [
+         4, 
+         3, 
+         3
+      ]
+   ], 
+   "353": [
+      "algorithms/smirnov353-36-280", 
+      [
+         3, 
+         5, 
+         3
+      ]
+   ], 
+   "grey333_23_152": [
+      "algorithms/grey333-23-152", 
+      [
+         3, 
+         3, 
+         3
+      ]
+   ], 
+   "smirnov363_40_960": [
+      "algorithms/smirnov363-40-960", 
+      [
+         3, 
+         6, 
+         3
+      ]
+   ]
+}
