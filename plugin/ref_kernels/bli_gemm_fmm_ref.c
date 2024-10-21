@@ -174,7 +174,7 @@ void PASTEMAC3(ch,opname,arch,suf) \
 		}\
 	} \
 \
-\
+    \
 	if (TIME_ACC_C) {\
 		double end_time = _bl_clock();\
 		TIMES[0] += end_time - acc_begin_time;\

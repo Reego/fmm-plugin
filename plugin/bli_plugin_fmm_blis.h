@@ -59,9 +59,9 @@ double _bl_clock();
 
 extern double TIMES[];
 extern int CLOCK_CALLS[];
-#define TIME_PACK   1
-#define TIME_C      1
-#define TIME_ACC_C  1
+static const int TIME_PACK = 1;
+static const int TIME_C = 1;
+static const int TIME_ACC_C = 1; 
 
 extern siz_t FMM_BLIS_PACK_UKR;
 extern siz_t FMM_BLIS_PACK_UKR_SYMM;

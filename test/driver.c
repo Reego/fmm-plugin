@@ -98,7 +98,7 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     double times_pre[] = { 0.0, 0.0, 0.0, 0.0 };
     double times_adjusted[] = { 0.0, 0.0, 0.0, 0.0 };
 
-    const double CLOCK_CALL_TIME = .16 / 2014720.0;
+    const double CLOCK_CALL_TIME = .033 / 2107000.0;
 
     if (fmm == 0)
     {
@@ -136,6 +136,7 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
             }
             bl_dgemm_time = bl_clock() - bl_dgemm_beg;
 
+            printf("CLOCK CALLS: %d\n", CLOCK_CALLS[1]);
             double total_clock_calls = (double)(CLOCK_CALLS[1] + CLOCK_CALLS[2] + CLOCK_CALLS[3]);
             double adjusted_time = bl_dgemm_time - total_clock_calls * CLOCK_CALL_TIME;
 
