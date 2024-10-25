@@ -13,10 +13,10 @@ def main():
         res_obj = {}
 
         for line in output:
-            
+
             line = line.decode("utf-8")
 
-            if "RESULT" in line: continue
+            if "RESULT" in line or (line.strip() == ""): continue
 
             line = line.strip()
             sep_index = line.index(" ")
