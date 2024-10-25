@@ -102,7 +102,7 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     double times_pre[] = { 0.0, 0.0, 0.0, 0.0 };
     double times_adjusted[] = { 0.0, 0.0, 0.0, 0.0 };
 
-    const double CLOCK_CALL_TIME = .033 / 2107000.0;
+    const double CLOCK_CALL_TIME = .052 / 1759296.0;
 
     if (fmm == 0)
     {
