@@ -6,7 +6,6 @@
 
 #include "blis.h"
 #include "bli_fmm.h"
-#include "bli_plugin_fmm_blis.h"
 
 
 enum DriverFlag {
