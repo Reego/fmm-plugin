@@ -59,10 +59,10 @@ double _bl_clock();
 
 extern double TIMES[];
 extern int CLOCK_CALLS[];
-int TIME_PACK_A = 0;
-int TIME_PACK_B = 0;
-int TIME_C = 0;
-int TIME_ACC_C = 0; 
+static int TIME_PACK_A = 0;
+static int TIME_PACK_B = 0;
+static int TIME_C = 0;
+static int TIME_ACC_C = 0; 
 
 extern siz_t FMM_BLIS_PACK_UKR;
 extern siz_t FMM_BLIS_PACK_UKR_SYMM;
