@@ -12,9 +12,16 @@ def main():
 
         res_obj = {}
 
+        started = False
+
         for line in output:
 
             line = line.decode("utf-8")
+
+            if "RESULT" in line and not started:
+                started = True
+            elif not started:
+                continue
 
             if "RESULT" in line or (line.strip() == ""): continue
 
