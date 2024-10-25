@@ -195,14 +195,14 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     printf("residual %d\n", resid);
     printf("\n");
     printf("pre_total %5.3g\n", bl_dgemm_rectime);
-    printf("pre_summed_parts %5.3g\n", times_pre[1] + times_pre[2] + times_pre[3])
+    printf("pre_summed_parts %5.3g\n", times_pre[1] + times_pre[2] + times_pre[3]);
     printf("pre_acc %5.3g\n", times_pre[0]);
     printf("pre_macro_kernel %5.3g\n", times_pre[1]);
     printf("pre_pack_a %5.3g\n", times_pre[2]);
     printf("pre_pack_b %5.3g\n", times_pre[3]);
     printf("\n");
     printf("adj_total %5.3g\n", bl_dgemm_rectime_adjusted);
-    printf("adj_summed_parts %5.3g\n", times_adjusted[1] + times_adjusted[2] + times_adjusted[3])
+    printf("adj_summed_parts %5.3g\n", times_adjusted[1] + times_adjusted[2] + times_adjusted[3]);
     printf("adj_acc %5.3g\n", times_adjusted[0]);
     printf("adj_macro_kernel %5.3g\n", times_adjusted[1]);
     printf("adj_pack_a %5.3g\n", times_adjusted[2]);
