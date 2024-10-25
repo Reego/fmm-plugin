@@ -13,6 +13,9 @@ def main():
         res_obj = {}
 
         for line in output:
+            
+            line = line.decode("utf-8")
+
             if "RESULT" in line: continue
 
             line = line.strip()
