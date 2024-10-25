@@ -189,10 +189,10 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     printf("n %d\n", n);
     printf("k %d\n", k);
     printf("\n");
-    printf("gflops_pre %d\n", flops / bl_dgemm_rectime);
-    printf("gflops_aj %d\n", flops / bl_dgemm_rectime_adjusted);
-    printf("gflops_ref %d\n", flops / ref_rectime);
-    printf("residual %d\n", resid);
+    printf("gflops_pre %5.3g\n", flops / bl_dgemm_rectime);
+    printf("gflops_adj %5.3g\n", flops / bl_dgemm_rectime_adjusted);
+    printf("gflops_ref %5.3g\n", flops / ref_rectime);
+    printf("residual %5.3g\n", resid);
     printf("\n");
     printf("pre_total %5.3g\n", bl_dgemm_rectime);
     printf("pre_summed_parts %5.3g\n", times_pre[1] + times_pre[2] + times_pre[3]);
@@ -304,15 +304,19 @@ int main( int argc, char *argv[] )
                         break;
                         case 'o':
                             current_flag = TIME_A_FLAG;
+                            TIME_PACK_A = 1;
                         break;
                         case 'p':
                             current_flag = TIME_B_FLAG;
+                            TIME_PACK_B = 1;
                         break;
                         case 'm':
                             current_flag = TIME_MACRO_FLAG;
+                            TIME_C = 1;
                         break;
                         case 'c':
                             current_flag = TIME_ACC_FLAG;
+                            TIME_ACC_C = 1;
                         break;
                         case 'f':
                             ++i;
