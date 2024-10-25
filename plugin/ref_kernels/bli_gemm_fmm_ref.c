@@ -179,7 +179,7 @@ void PASTEMAC3(ch,opname,arch,suf) \
 		double end_time = _bl_clock();\
 		TIMES[0] += end_time - acc_begin_time;\
 		CLOCK_CALLS[0] += 1;\
-		CLOCK_CALLS[1] += 2;\
+		CLOCK_CALLS[1] += 1;\
 	}\
 }
 

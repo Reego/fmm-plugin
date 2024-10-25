@@ -6,16 +6,21 @@
 
 #include "blis.h"
 #include "bli_fmm.h"
+#include "bli_plugin_fmm_blis.h"
 
 
 enum DriverFlag {
     NONE,
-    REP_FLAG,
-    VAR_FLAG,
-    FMM_FLAG,
-    RANDOM_FLAG,
-    REINDEX_A_FLAG,
-    REINDEX_B_FLAG,
+    REP_FLAG,           // -r
+    VAR_FLAG,           // -v
+    FMM_FLAG,           // -f
+    RANDOM_FLAG,        //
+    REINDEX_A_FLAG,     // -a
+    REINDEX_B_FLAG,     // -b
+    TIME_A_FLAG,        // -o
+    TIME_B_FLAG,        // -p
+    TIME_MACRO_FLAG,    // -m
+    TIME_ACC_FLAG       // -c
 };
 
 void my_mm(obj_t* A, obj_t* B, obj_t* C, dim_t m, dim_t n, dim_t k) {
@@ -136,7 +141,7 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
             }
             bl_dgemm_time = bl_clock() - bl_dgemm_beg;
 
-            printf("CLOCK CALLS: %d\n", CLOCK_CALLS[1]);
+            // printf("CLOCK CALLS: %d\n", CLOCK_CALLS[1]);
             double total_clock_calls = (double)(CLOCK_CALLS[1] + CLOCK_CALLS[2] + CLOCK_CALLS[3]);
             double adjusted_time = bl_dgemm_time - total_clock_calls * CLOCK_CALL_TIME;
 
@@ -180,10 +185,37 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     // Compute overall floating point operations.
     flops = ( m * n / ( 1000.0 * 1000.0 * 1000.0 ) ) * ( 2 * k );
 
-    printf( "%5d\t %5d\t %5d\t %5.2lf\t %5.2lf\t %5.2g\n",
-                m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid );
-    printf("\nTIMES PRE:\n====GFLOPS: %5.2g \tTotal %5.2g\n====ACC %5.2g UKR_TOTAL %5.2g PACKB %5.2g PACKA %5.2g\n\n", flops/bl_dgemm_rectime, bl_dgemm_rectime, times_pre[0], times_pre[1], times_pre[2], times_pre[3]);
-    printf("\nADJUSTED:\n====GFLOPS: %5.2g \tTotal %5.2g\n====ACC %5.2g UKR_TOTAL %5.2g PACKB %5.2g PACKA %5.2g\n\n", flops/bl_dgemm_rectime_adjusted, bl_dgemm_rectime_adjusted, times_adjusted[0], times_adjusted[1], times_adjusted[2], times_adjusted[3]);
+    printf("\n\nRESULT %d %d %d\n", m, n, k);
+    printf("m %d\n", m);
+    printf("n %d\n", n);
+    printf("k %d\n", k);
+    printf("\n");
+    printf("gflops_pre %d\n", flops / bl_dgemm_rectime);
+    printf("gflops_aj %d\n", flops / bl_dgemm_rectime_adjusted);
+    printf("gflops_ref %d\n", flops / ref_rectime);
+    printf("residual %d\n", resid);
+    printf("\n");
+    printf("pre_total %5.3g\n", bl_dgemm_rectime);
+    printf("pre_summed_parts %5.3g\n", times_pre[1] + times_pre[2] + times_pre[3])
+    printf("pre_acc %5.3g\n", times_pre[0]);
+    printf("pre_macro_kernel %5.3g\n", times_pre[1]);
+    printf("pre_pack_a %5.3g\n", times_pre[2]);
+    printf("pre_pack_b %5.3g\n", times_pre[3]);
+    printf("\n");
+    printf("adj_total %5.3g\n", bl_dgemm_rectime_adjusted);
+    printf("adj_summed_parts %5.3g\n", times_adjusted[1] + times_adjusted[2] + times_adjusted[3])
+    printf("adj_acc %5.3g\n", times_adjusted[0]);
+    printf("adj_macro_kernel %5.3g\n", times_adjusted[1]);
+    printf("adj_pack_a %5.3g\n", times_adjusted[2]);
+    printf("adj_pack_b %5.3g\n", times_adjusted[3]);
+
+    printf("\nEND RESULT\n");
+
+
+    // printf( "%5d\t %5d\t %5d\t %5.2lf\t %5.2lf\t %5.2g\n",
+    //             m, n, k, flops / bl_dgemm_rectime, flops / ref_rectime, resid );
+    // printf("\nTIMES PRE:\n====GFLOPS: %5.2g \tTotal %5.2g\n====ACC %5.2g UKR_TOTAL %5.2g PACKB %5.2g PACKA %5.2g\n\n", flops/bl_dgemm_rectime, bl_dgemm_rectime, times_pre[0], times_pre[1], times_pre[2], times_pre[3]);
+    // printf("\nADJUSTED:\n====GFLOPS: %5.2g \tTotal %5.2g\n====ACC %5.2g UKR_TOTAL %5.2g PACKB %5.2g PACKA %5.2g\n\n", flops/bl_dgemm_rectime_adjusted, bl_dgemm_rectime_adjusted, times_adjusted[0], times_adjusted[1], times_adjusted[2], times_adjusted[3]);
 
     fflush(stdout);
 
@@ -269,6 +301,24 @@ int main( int argc, char *argv[] )
                         break;
                         case 'z':
                             current_flag = RANDOM_FLAG;
+                            randomize = true;
+                        break;
+                        case 'o':
+                            current_flag = TIME_A_FLAG;
+                            TIME_A = 1;
+                        break;
+                        case 'p':
+                            current_flag = TIME_B_FLAG;
+                            TIME_B = 1;
+                        break;
+                        case 'm':
+                            current_flag = TIME_MACRO_FLAG;
+                            TIME_C = 1;
+                        break;
+                        case 'c':
+                            current_flag = TIME_ACC_FLAG;
+                            TIME_ACC_C = 1;
+                        break;
                         case 'f':
                             ++i;
 
@@ -315,8 +365,7 @@ int main( int argc, char *argv[] )
             case VAR_FLAG:
                 variant = atoi(arg);
             break;
-            case RANDOM_FLAG:
-                randomize = true;
+            default:
             break;
         }
         current_flag = NONE;

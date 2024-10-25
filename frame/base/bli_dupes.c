@@ -11,10 +11,6 @@ void bli_packm_blk_var1_dupe
      )
 {
 	// Extract various fields from the control tree.
-	double start_time = 0.0;
-	if (TIME_PACK) {
-		start_time = _bl_clock();
-	}
 	pack_t schema  = bli_packm_def_cntl_pack_schema( cntl );
 	bool   invdiag = bli_packm_def_cntl_does_invert_diag( cntl );
 	bool   revifup = bli_packm_def_cntl_rev_iter_if_upper( cntl );
@@ -62,6 +58,13 @@ void bli_packm_blk_var1_dupe
 
 	char*   p_cast         = bli_obj_buffer( p );
 	inc_t   ldp            = bli_obj_col_stride( p );
+	double start_time = 0.0;
+	if (TIME_PACK_A && ldp == 6) {
+		start_time = _bl_clock();
+	}
+	if (TIME_PACK_B && ldp == 8) {
+		start_time = _bl_clock();
+	}
 	dim_t   panel_dim_max  = bli_obj_panel_dim( p );
 	inc_t   ps_p           = bli_obj_panel_stride( p );
 	dim_t   bcast_p        = bli_packm_def_cntl_bmult_m_bcast( cntl );
@@ -258,16 +261,15 @@ void bli_packm_blk_var1_dupe
 			p_begin += is_p_use*dt_p_size;
 		}
 	}
-	if (TIME_PACK) {
+	if (TIME_PACK_A && ldp == 6) {
 		double end_time = _bl_clock();
-		if (ldp == 8) {
-			TIMES[2] += end_time - start_time;
-			CLOCK_CALLS[2] += 1;
-		}
-		else {
-			TIMES[3] += end_time - start_time;
-			CLOCK_CALLS[3] += 1;
-		}
+		TIMES[3] += end_time - start_time;
+		CLOCK_CALLS[3] += 1;
+	}
+	if (TIME_PACK_B && ldp == 8) {
+		double end_time = _bl_clock();
+		TIMES[2] += end_time - start_time;
+		CLOCK_CALLS[2] += 1;
 	}
 }
 
