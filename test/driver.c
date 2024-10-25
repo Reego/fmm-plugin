@@ -305,19 +305,15 @@ int main( int argc, char *argv[] )
                         break;
                         case 'o':
                             current_flag = TIME_A_FLAG;
-                            TIME_A = 1;
                         break;
                         case 'p':
                             current_flag = TIME_B_FLAG;
-                            TIME_B = 1;
                         break;
                         case 'm':
                             current_flag = TIME_MACRO_FLAG;
-                            TIME_C = 1;
                         break;
                         case 'c':
                             current_flag = TIME_ACC_FLAG;
-                            TIME_ACC_C = 1;
                         break;
                         case 'f':
                             ++i;
