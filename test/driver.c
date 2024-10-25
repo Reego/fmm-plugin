@@ -207,6 +207,7 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     printf("adj_macro_kernel %5.3g\n", times_adjusted[1]);
     printf("adj_pack_a %5.3g\n", times_adjusted[2]);
     printf("adj_pack_b %5.3g\n", times_adjusted[3]);
+    printf("\nclock_calls: %d\n", CLOCK_CALLS[1] + CLOCK_CALLS[2] + CLOCK_CALLS[3]);
 
     printf("\nEND RESULT\n");
 
