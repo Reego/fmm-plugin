@@ -194,6 +194,8 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     printf("gflops_ref %5.3g\n", flops / ref_rectime);
     printf("residual %5.3g\n", resid);
     printf("\n");
+    printf("ref_total %5.3g\n", ref_rectime);
+    printf("\n");
     printf("pre_total %5.3g\n", bl_dgemm_rectime);
     printf("pre_summed_parts %5.3g\n", times_pre[1] + times_pre[2] + times_pre[3]);
     printf("pre_acc %5.3g\n", times_pre[0]);
