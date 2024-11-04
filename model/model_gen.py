@@ -41,7 +41,7 @@ with open("alg_directory.json", "r") as f:
 
 ALG = "222"
 LEVEL_NUM = 1
-VARIANT = "dgemm"
+VARIANT = "abc"
 TEST_TYPE = "square"
 
 CLOCK_RATE = 4.2
@@ -50,7 +50,7 @@ OPS_PER_CYCLE = 16
 
 step_size = 240
 # max_range = 13500
-max_range = 2500
+max_range = 3400 
 sample_list = range( step_size, max_range + 1, step_size )
 
 alg_set=[
@@ -94,62 +94,26 @@ def get_model_gflops( m, n, k, dims, level, coefficient ):
 
     global output_dict
 
-    # clock_rate = 4.20 * 2
-    # clock_rate = 3.8
-    # clock_rate = 8.4
-    # clock_rate = 3.8
-    # 3.54 clock rate originally
-    # clock_rate = 4.20
-
-    # ops_per_cycle = 16
-
-    # previously 8
-    # tau = 1 / ( ops_per_cycle * clock_rate )
-    # channels = 1
-    # alpha = 0.5 / channels
-    # mc = 72
-    # nc = 4080
-    # kc = 256
-
-    # clock_rate = 4.2
-    # ops_per_cycle = 16
     mc = 72
     nc = 4080
     kc = 256
 
-    # clock_rate = 3.54
     clock_rate = CLOCK_RATE
     ops_per_cycle = OPS_PER_CYCLE
 
-    # og
+    # originallyg
     # mc = 96
     # nc = 4096
     # kc = 256
 
-
-#define DGEMM_MC 96
-#define DGEMM_NC 4096
-#define DGEMM_KC 256
-#define DGEMM_MR 8
-#define DGEMM_NR 4
-    # mc = 96
-    # nc = 4096
-    # kc = 256
-
-    # mult_tau = (1 / (ops_per_cycle * clock_rate))
     mult_tau = (1 / (ops_per_cycle * clock_rate)) / (10**9)
     tau = mult_tau * 2
     channels = 2
-    # alpha = 0.5 / channels
     alpha = (1/60) / (10**9) / channels
 
     print(tau, alpha)
 
-
     [ M_total_mul, M_A_add,  M_B_add, M_C_add, N_A_mul, N_B_mul, N_C_mul, N_A_add, N_B_add, N_C_add ] = coefficient
-
-    # print("="*10)
-    # print(m, M_total_mul, M_A_add, M_B_add, M_C_add, level)
 
     virtual_flops = 2 * m * k * n
 
@@ -159,72 +123,30 @@ def get_model_gflops( m, n, k, dims, level, coefficient ):
     ks = k / level_dims[1]
     ns = n / level_dims[2]
 
-    arith_correction = 1
-    # arith_correction = 1
-    # mop_correction = 1
-
-    actual_flops = mult_tau * M_total_mul * 2 * ms * ks * ns + tau * arith_correction * M_A_add * 2 * ms * ks + tau * arith_correction * M_B_add * 2 * ks * ns + tau * M_C_add * 2 * ms * ns
-
-    # print("ARITH", dec(mult_tau * M_total_mul * 2 * ms * ks * ns), dec(tau * M_A_add * 2 * ms * ks + tau * M_B_add * 2 * ks * ns + tau * M_C_add * 2 * ms * ns))
-
-    # print("MULT", dec(M_total_mul * 2 * ms * ks * ns), dec(mult_tau))
-    # print(M_A_add, M_B_add, N_A_add, N_B_add)
-    # print("ADD OPS", dec(M_A_add * 2 * ms * ks + M_B_add * 2 * ks * ns + M_C_add * 2 * ms * ns), dec(tau))
+    actual_flops = mult_tau * M_total_mul * 2 * ms * ks * ns + tau * M_A_add * 2 * ms * ks + tau * M_B_add * 2 * ks * ns + tau * M_C_add * 2 * ms * ns
 
     mops_Bc = 1 * ns * ks
     mops_Ac = 1 * ms * ks * math.ceil( (float)(ns) / (float)(nc) )
-    # print(mops_Ac, nc)
     mops_Cc = 1 * math.ceil( (float)(ks) / (float)(kc) ) * ms * ns
     mops_B  = 1 * ns * ks
     mops_A  = 1 * ns * ks
     mops_C  = 1 * ms * ns
 
-    print("M_total_mul", M_total_mul)
-    print("M_A_add", M_A_add)
-    print("M_B_add", M_B_add)
-    print("M_C_add", M_C_add)
-    print("N_A_mul", N_A_mul)
-    print("N_B_mul", N_B_mul)
-    print("N_C_mul", N_C_mul)
-    print("N_A_add", N_A_add)
-    print("N_B_add", N_B_add)
-    print("N_C_add", N_C_add)
-    print("tau", tau)
-    print("mult_tau", mult_tau)
-    print("mops_Ac", mops_Ac)
-    print("mops_Bc", mops_Bc)
-    print("mops_Cc", mops_Cc)
-    print("mops_A", mops_A)
-    print("mops_B", mops_B)
-    print("mops_C", mops_C)
-
-    correction = 1
-
-    # print("MOPS", dec(correction * N_A_mul * mops_Ac + correction * N_B_mul * mops_Bc), dec(N_C_mul * 2 * mops_Cc),
-    #     dec(N_A_add * mops_Bc + N_B_add * mops_B  + N_C_add * mops_C))
+    correction = 1 # unused
 
     mops = correction * N_A_mul * mops_Ac + correction * N_B_mul * mops_Bc + correction * N_C_mul * 2 * mops_Cc \
          + N_A_add * mops_Bc + N_B_add * mops_B  + N_C_add * mops_C
-    # Using a function to describe the prefetching efficiency: penalty -> punishment
 
-    # print("mops", dec(mops))
-    # print(dec(actual_flops), dec(mops*alpha))
-    # print("Result", m, n, k, "level", level, "variant", variant, "GFLOPS", res )
-
-    time_total = actual_flops + mops * alpha
-
-    # print("mops*alpha vs actual:", mops*alpha, actual_flops)
-
-    effective_gflops = virtual_flops / time_total / (10**9)
-
-    print("time_total", time_total)
-
-    print("TIME BREAKDOWN")
     ukr_time = mult_tau * M_total_mul * 2 * ms * ks * ns
     acc_time = tau * M_C_add * 2 * ms * ns + alpha * N_C_add * mops_C + alpha * correction * N_C_mul * 2 * mops_Cc
     ukr_time_total = ukr_time + acc_time
-    packa = tau * arith_correction * M_A_add * 2 * ms * ks + alpha * correction * N_A_mul * mops_Ac + alpha * N_A_add * mops_Bc
-    packb = tau * arith_correction * M_B_add * 2 * ks * ns + alpha * correction * N_B_mul * mops_Bc + alpha * N_B_add * mops_B
+
+    packa = tau * M_A_add * 2 * ms * ks + alpha * correction * N_A_mul * mops_Ac + alpha * N_A_add * mops_Bc
+    packb = tau * M_B_add * 2 * ks * ns + alpha * correction * N_B_mul * mops_Bc + alpha * N_B_add * mops_B
+    
+    time_total = ukr_time + acc_time + packa + packb
+    effective_gflops = virtual_flops / time_total / (10**9)
+
     print("ACC", acc_time)
     print("UKR TOTAL", ukr_time_total)
     print("PACK A", packa)
@@ -254,11 +176,14 @@ def get_model_gflops( m, n, k, dims, level, coefficient ):
         "mops_A": mops_A,
         "mops_B": mops_B,
         "mops_C": mops_C,
-        "TIME_acc": acc_time,
-        "TIME_macro_kernel": ukr_time_total,
-        "TIME_pack_a": packa,
-        "TIME_pack_b": packb,
-        "TIME_total": time_total,
+        "MODEL_acc": acc_time,
+        "MODEL_macro_kernel": ukr_time_total,
+        "MODEL_pack_a": packa,
+        "MODEL_pack_b": packb,
+        "MODEL_acc_gflops": virtual_flops / acc_time / (10**9),
+        "MODEL_macro_kernel_gflops": virtual_flops / ukr_time_total / (10**9),
+        "MODEL_gflops_lost":  effective_gflops - (virtual_flops / ukr_time_total / (10**9)),
+        "MODEL_total": time_total,
         "effective_gflops": effective_gflops,
     }
 
@@ -494,4 +419,4 @@ def main():
 if __name__ == '__main__':
     main()
 
-    print(output_dict)
+    if True: print(output_dict)

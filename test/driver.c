@@ -206,7 +206,10 @@ void run(dim_t m, dim_t n, dim_t k, fmm_t* fmm, int nreps)
     printf("adj_total %5.3g\n", bl_dgemm_rectime_adjusted);
     printf("adj_summed_parts %5.3g\n", times_adjusted[1] + times_adjusted[2] + times_adjusted[3]);
     printf("adj_acc %5.3g\n", times_adjusted[0]);
+    printf("adj_acc_gflops %5.3g\n", flops / times_adjusted[0]);
     printf("adj_macro_kernel %5.3g\n", times_adjusted[1]);
+    printf("adj_macro_kernel_gflops %5.3g\n", flops / times_adjusted[1]);
+    printf("adj_gflops_lost %5.3g\n", (flops / bl_dgemm_rectime_adjusted) - (flops / times_adjusted[1]));
     printf("adj_pack_a %5.3g\n", times_adjusted[2]);
     printf("adj_pack_b %5.3g\n", times_adjusted[3]);
     printf("\nclock_calls: %d\n", CLOCK_CALLS[1] + CLOCK_CALLS[2] + CLOCK_CALLS[3]);
